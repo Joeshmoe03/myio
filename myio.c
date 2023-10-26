@@ -23,16 +23,22 @@ MYFILE *myopen(const char* path, int flags) {
 	switch(flags) {
 		case O_CREAT:
 			filedesc = open(path, O_CREAT, 0666); //TODO
+			break;
 		case O_WRONLY:
 			filedesc = open(path, O_WRONLY); //TODO
+			break;
 		case O_RDONLY:
 			filedesc = open(path, O_RDONLY); //TODO
+			break;
 		case O_RDWR:
 			filedesc = open(path, O_RDWR); //TODO
+			break;
 		case O_TRUNC:
 			filedesc = open(path, O_TRUNC, 0666); //TODO
+			break;
 		default:
 			printf("in default");
+			break;
 		
 		void* filebuff = malloc(BUFFER_SIZE); //TODO: IS THIS CORRECT TYPE? SHOULD WE EVEN DO HERE?
 
