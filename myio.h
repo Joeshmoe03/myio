@@ -1,14 +1,16 @@
 typedef struct {
 	int filedesc;
+	int *buff;
 	int buffsize;
+	int useroffset;
 	int offset;
 	//SOMETHING;
 } MYFILE;
 
 //_______________________________________________________________________________________
 
-/* Function prototype for myopen: passed default 0666 */
-MYFILE *myopen(const char* path, int flags); //PASS 0666
+/* Function prototype for myopen */
+MYFILE *myopen(const char* path, int flags);
 
 int myclose();
 
