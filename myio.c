@@ -20,25 +20,32 @@ MYFILE *myopen(const char* path, int flags) {
 	MYFILE *filep = malloc(sizeof(MYFILE));
 	
 	//TODO: HANDLE OUR FLAGS
-	switch(flags) {
-		case O_CREAT:
-			filedesc = open(path, O_CREAT, 0666); //TODO
-			break;
-		case O_WRONLY:
-			filedesc = open(path, O_WRONLY); //TODO
-			break;
-		case O_RDONLY:
-			filedesc = open(path, O_RDONLY); //TODO
-			break;
-		case O_RDWR:
-			filedesc = open(path, O_RDWR); //TODO
-			break;
-		case O_TRUNC:
-			filedesc = open(path, O_TRUNC, 0666); //TODO
-			break;
-		default:
-			printf("in default");
-			break;
+	// switch(flags) {
+	// 	case O_CREAT:
+	// 		filedesc = open(path, O_CREAT, 0666); //TODO
+	// 		break;
+	// 	case O_WRONLY:
+	// 		filedesc = open(path, O_WRONLY); //TODO
+	// 		break;
+	// 	case O_RDONLY:
+	// 		filedesc = open(path, O_RDONLY); //TODO
+	// 		break;
+	// 	case O_RDWR:
+    //         //printf("INSIDE\n");
+	// 		filedesc = open(path, O_RDWR); //TODO
+	// 		break;
+	// 	case O_TRUNC:
+	// 		filedesc = open(path, O_TRUNC, 0666); //TODO
+	// 		break;
+	// 	default:
+	// 		//printf("in default");
+    //         perror("open");
+	// 		break;
+
+        if (flags == O_CREAT || flags == O_TRUNC) {
+            open(path, flags, 0666);
+        }
+        open(path, flags);
 		
 		void* filebuff = malloc(BUFFER_SIZE); //TODO: IS THIS CORRECT TYPE? SHOULD WE EVEN DO HERE?
 
@@ -48,6 +55,6 @@ MYFILE *myopen(const char* path, int flags) {
 		filep->offset = 0;
 		filep->useroffset = 0;
 		//TODO: ANY OTHER STRUCT ELEMENTS?
-	}
+	
 	return filep;
 }
