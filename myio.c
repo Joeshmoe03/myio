@@ -13,7 +13,7 @@ typedef struct {
 	int buffsize;
 	int offset;
 	int //SOMETHING;
-} MYFILE
+} MYFILE;
 
 //_______________________________________________________________________________________
 
