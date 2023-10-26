@@ -31,6 +31,8 @@ MYFILE *myopen(const char* path, int flags) {
 			filedesc = open(path, O_RDWR); //TODO
 		case O_TRUNC:
 			filedesc = open(path, O_TRUNC, 0666); //TODO
+		default:
+			printf("in default");
 		
 		void* filebuff = malloc(BUFFER_SIZE); //TODO: IS THIS CORRECT TYPE? SHOULD WE EVEN DO HERE?
 
