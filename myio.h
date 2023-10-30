@@ -1,7 +1,8 @@
 typedef struct {
 	int filedesc;
-	int *buff;
-	int buffsize;
+	char *buf;
+	int bufsize;
+	int bufcount;
 	int useroffset;
 	int offset;
 	//SOMETHING;
@@ -10,13 +11,13 @@ typedef struct {
 //_______________________________________________________________________________________
 
 /* Function prototype for myopen */
-MYFILE *myopen(const char* path, int flags);
+MYFILE* myopen(const char* path, int flags);
+
+void mywrite(MYFILE* filep, char *buf, int count);
 
 int myclose();
 
 int myread();
-
-int mywrite();
 
 int myseek();
 
