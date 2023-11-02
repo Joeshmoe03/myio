@@ -1,10 +1,17 @@
+/*
+ * myio.h
+ */
+
+#ifndef __MYIO_H
+#define __MYIO_H
+
 typedef struct {
 	int filedesc;
 	char *buf;
 	int bufsize;
 	int bufcount;
 	int useroffset;
-	int offset;
+	int ouroffset;
 	//SOMETHING;
 } MYFILE;
 
@@ -17,8 +24,12 @@ void mywrite(MYFILE* filep, char *buf, int count);
 
 int myclose();
 
-int myread();
+int myread(MYFILE* filep, char *userbuffer, int count);
 
-int myseek();
+int myseek(MYFILE *filep, int offset, int whence);
 
-int myflush();
+void myflush();
+
+
+
+#endif /* __MYIO_H*/

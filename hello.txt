@@ -1,4 +1,4 @@
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod 
+Loremipsumdolorsitamet,consecteturadipiscing elit, sed do eiusmod 
 
 /*myio.c*/
 #include <stdio.h>
@@ -136,3 +136,109 @@ main(int argc, char *argv[])
     // printf(buf2);
 
 }
+
+
+/*Myread*/
+	// while(filep->bufcount < filep->bufsize) {
+
+	// 	//IF IT'S EMPTY (first call or we emptied it out by reading all of it into userbuffer)
+	// 	//DO read() call into OUR BUFFER IN STRUCT
+	// 	if(filep->bufcount == 0) {
+	// 		read((filep -> filedesc), filep->buf, filep->bufsize);
+	// 	}
+
+	// 	//CASE1 (ask for more or same than we have)
+	// 	// if they desire to read more bytes than our buffer can allocate, just give them all we got 
+	// 	if (bytesleft >= filep->bufsize) {
+	// 		memcpy(userbuffer, filep->buf, filep->bufsize); //gives them what we got (buffer size)
+	// 		//reset
+	// 		free(filep->buf);
+	// 		filep->buf = trycharmalloc(filep->bufsize);
+	// 		count -= filep->bufsize;
+	// 		continue;
+	// 	}
+
+	// 	//else (count < bytesleft), give them only what they need (until our buffer is emptied - reached )
+	// 	memcpy(userbuffer, filep->buf, bytesleft);
+	// 	filep->bufcount += bytesleft;
+		
+	// }
+
+
+	// if
+	// //CASE2 (ask for less than we have)
+	// memcpy(userbuffer, filep->buf, count);
+	// filep->bufcount += count;
+	
+
+
+	//work with two separate cases, more or less
+
+
+	// //IF IT'S EMPTY (first call or we emptied it out by reading all of it into userbuffer)
+	// //DO read() call into OUR BUFFER IN STRUCT
+	// if(filep->bufcount == 0) {
+	// 	read((filep -> filedesc), filep->buf, filep->bufsize);
+	// }
+
+	// //while we haven't emptied IT (or it's not full); idk some condition
+	// //memcpy according to user's read call
+	// while(filep->bufcount <= filep->bufsize) {
+
+	// 	// //if they desire to read more bytes than our buffer can allocate, just give them all we got 
+	// 	// if (count > filep->bufsize) {
+	// 	// 	memcpy(userbuffer, filep->buf, filep->bufsize); //gives them what we got (buffer size)
+	// 	// 	free(filep->buf);
+	// 	// 	filep->buf = trycharmalloc(filep->bufsize);
+	// 	// 	filep->bufcount += filep->bufsize;
+	// 	// 	continue;
+	// 	// }
+
+	// 	memcpy(userbuffer, filep->buf, count);
+	// 	filep->bufcount += count;
+	// }
+
+	// //once we unload all of our read bytes in buffer, empty it, reset 
+	// free(filep->buf);
+
+	// filep->buf = trycharmalloc(filep->bufsize);
+	// filep->bufcount = 0;
+
+
+	// //read with bytesleft or go in one last time in other loop
+	// read((filep -> filedesc), filep->buf, bytesleft);
+	// memcpy(userbuffer+50, filep->buf, bytesleft);
+	// printf(userbuffer+50);
+	// printf("\n\n");
+	// filep->bufcount += bytesleft;
+
+
+	// //if they desire to read more bytes than our buffer can allocate, just give them all we got (rinse and repeat until we go into case 2) 
+	// while(bytesleft + filep->bufcount >= filep->bufsize) { //will catch the case when we ask for more than we have available (read(10) with only 5 empty spaces)
+	// 	if(filep->bufcount == 0) {
+	// 		printf("We reading\n");
+	// 		//read() gives 0 for EOF and is negative for error n 
+	// 		if(read((filep -> filedesc), filep->buf, filep->bufsize) <0) {
+	// 			perror("read");
+	// 			exit(1);	
+	// 		}		
+	// 	}
+
+	// 	printf("We unloading\n");
+	// 	memcpy(userbuffer, filep->buf, filep->bufsize); //gives them what we got (buffer size); causes memory leaks
+	// 	printf(userbuffer); //associated with memory leaks;
+	// 	printf("\n\n");
+	// 	//reset (overwrites implicitly so no need to do this??)
+	// 	// free(filep->buf);
+	// 	// filep->buf = trycharmalloc(filep->bufsize);
+	// 	bytesleft -= filep->bufsize;
+	// }
+
+	//else (count < bytesleft), give them only what they need (until our buffer is emptied - reached ) or should i let case 2 handle this?
+	//printf("%d\n",  bytesleft);
+
+	//reset (overwrites implicitly so no need to do this??)
+	// free(filep->buf);
+	// filep->buf = trycharmalloc(filep->bufsize);
+
+	//printf("Final unload\n");
