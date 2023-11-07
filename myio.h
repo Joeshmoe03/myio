@@ -27,9 +27,11 @@ int myclose();
 
 int myread(MYFILE* filep, char *userbuffer, int count);
 
+void myflush();
+
 int myseek(MYFILE *filep, int offset, int whence);
 
-void myflush();
+
 
 
 

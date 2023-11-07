@@ -1,4 +1,4 @@
-/*myio.c*/
+/* myio.c */
 #include <stdio.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -9,22 +9,16 @@
 #include <math.h>
 #include "myio.h"
 
-#define BUFFER_SIZE 25
+#define IObufFER_SIZE 100
 
-//myopen returns struct
-//myread(FILE, *buf, count)
-
-//close call flush
-//write call flush?
-
-/* This function attempts to malloc space for character buffer otherewise handles error */
+/* This function attempts to malloc space for character IObuffer otherewise handles error */
 char* trycharmalloc(int size) {
-	char* buf = malloc(size);
-	if (buf == NULL) {
+	char* IObuf = malloc(size);
+	if (IObuf == NULL) {
 		perror("malloc");
 		exit(1);
 	}
-	return buf;
+	return IObuf;
 }
 
 /* This function attempts to malloc space for MYFILE struct otherwise handles error */
@@ -42,159 +36,192 @@ MYFILE* tryFILEmalloc(int size) {
  * See: *https://man7.org/linux/man-pages/man3/fopen.3.html */
 MYFILE *myopen(const char* path, int flags) {
 	int filedesc;
-	char* filebuf = trycharmalloc(BUFFER_SIZE);
+	char* fileIObuf = trycharmalloc(IObufFER_SIZE);
 	MYFILE *filep = tryFILEmalloc(sizeof(MYFILE));
 	
 	/* If our flags contains O_CREAT or O_TRUNC or both we may assume mode 0666 
 	 * else we try to open with O_RDWR xor O_RDONLY xor O_WRONLY without assumed mode. */
-	if ((flags & (O_CREAT|O_TRUNC)) == (O_CREAT|O_TRUNC) || O_CREAT || O_TRUNC) {
-		filedesc = open(path, flags, 0666);	
+	if ((flags & (O_CREAT|O_TRUNC)) == (O_CREAT|O_TRUNC) || 
+		(flags & (O_CREAT|O_TRUNC)) == O_CREAT || 
+		(flags & (O_CREAT|O_TRUNC)) == O_TRUNC) {
+		filedesc = open(path, flags, 0666);
 	} else {
 		filedesc = open(path, flags);
 	} //I DON'T THINK WE NEED TO HANDLE PERROR SINCE OPEN AND FOPEN DOESN'T SAY ANYTHING?
 
-	/* We fill our buffer with our filedescriptor and make space */
-	//TODO: filep->flags = flags (ADD flags TO typedef struct IN HEADERFILE)
-	filep->filedesc = filedesc;
-	filep->buf = filebuf;
-	filep->bufsize = BUFFER_SIZE;
-	filep->bufcount = 0;
-	filep->ouroffset = 0;
-	filep->useroffset = 0;
+	/* We fill our IObuffer with our filedescriptor and make space */
+	filep->flags = flags;
+	filep->filedesc = filedesc; //?
+	filep->IObuf = fileIObuf;
+	filep->IOsiz = IObufFER_SIZE;
+	filep->IOcnt = 0;
+	filep->IOoffset = 0;
+	filep->fileoffset = 0;
 	return filep;
 }
 
 
-int myread(MYFILE* filep, char *userbuffer, int count) {
+int myread(MYFILE* filep, char *userIObuffer, int count) {
 
-	// //WHAT DO WE DO IF the user is being silly (count is greater than the size they allocated for their userbuffer), give them as much as you can, then die? (this is what read does), 
+	// //WHAT DO WE DO IF the user is being silly (count is greater than the size they allocated for their userIObuffer), give them as much as you can, then die? (this is what read does), 
 	// //but we can't give anything with memcpy (instant segfault); memmove()???
 		
-	/* CASE 1: User asks to read more bytes than the max. our buffer can handle, so we skip buffering 
-	  and give them a read with however many bytes they want straight to their buffer */
-	if(count > BUFFER_SIZE) {
+	/* CASE 1: User asks to read more bytes than the max. our IObuffer can handle, so we skip IObuffering 
+	  and give them a read with however many bytes they want straight to their IObuffer */
+	if(count > IObufFER_SIZE) {
 
 		/* read() returns negative for error; 0 for EOF (end-of-file) */
-		if(read((filep -> filedesc), userbuffer, count) < 0) {
+		if(read((filep -> filedesc), userIObuffer, count) < 0) {
 				perror("read");
 				return -1;
 			}		
 		return count;
 	}
 
-	/* CASE 2: User asks to read less bytes than the max. our buffer can handle */
+	/* CASE 2: User asks to read less bytes than the max. our IObuffer can handle */
 
 	//TODO: Consider writing function for filling found below and in case 2a
 	
-	/* Initial Read: Completely fill our buffer; based on subsequent myread() calls, memcpy() bytes to userbuffer*/
-	if(filep->bufcount == 0) { //hmm... do calc with offset? (or just do ); +offset (P.A to buf and update )
-		if(read((filep -> filedesc), filep->buf, filep->bufsize) < 0) {
+	/* Initial Read: Completely fill our IObuffer; based on subsequent myread() calls, memcpy() bytes to userIObuffer*/
+	if(filep->IOoffset == 0) { //hmm... do calc with offset? (or just do ); +offset (P.A to IObuf and update )
+		if(read((filep -> filedesc), filep->IObuf, filep->IOsiz) < 0) {
 			perror("read");
 			return -1;	
 		}		
 	}
 
-	/* CASE 2a: Possible RESET if there's bytes remaning in buffer and user attempts to read past the max. our buffer can handle*/ 
-	/*POINTER ARITHMETIC HELL*/ //if i'm still operating on same userbuffer, i gotta use arithmetic to move along it
-	if(filep->bufcount + count >= BUFFER_SIZE) { //add offset
+	/* CASE 2a: Possible RESET if there's bytes remaning in IObuffer and user attempts to read past the max. our IObuffer can handle*/ 
+	/*POINTER ARITHMETIC HELL*/ //if i'm still operating on same userIObuffer, i gotta use arithmetic to move along it
+	if(filep->IOoffset + count >= IObufFER_SIZE) { //add offset
 
-		/* Copy remaining bytes - what's left in OUR buffer that can help satisfy a portion of this myread() call -
-		   from OUR buffer to User's buffer, this will still leave some bytes from THIS myread() call without being read & copied yet */
-		memcpy(userbuffer, filep->buf + filep->bufcount, (BUFFER_SIZE - filep->bufcount)); //add offset 
+		/* Copy remaining bytes - what's left in OUR IObuffer that can help satisfy a portion of this myread() call -
+		   from OUR IObuffer to User's IObuffer, this will still leave some bytes from THIS myread() call without being read & copied yet */
+		memcpy(userIObuffer, filep->IObuf + filep->IOoffset, (IObufFER_SIZE - filep->IOoffset)); //add offset 
 
-		/* Overwrite OUR buffer and completely fill it with new data */
-		if(read((filep -> filedesc), filep->buf, filep->bufsize) < 0) {
+		/* Overwrite OUR IObuffer and completely fill it with new data */
+		if(read((filep -> filedesc), filep->IObuf, filep->IOsiz) < 0) {
 			perror("read");
 			return -1;	
 		}	
 
 		/* Copy the rest of the bytes necessary to fulfill THIS myread() call */
-		memcpy(userbuffer + (BUFFER_SIZE - filep->bufcount), filep->buf, count - (BUFFER_SIZE - filep->bufcount));
+		memcpy(userIObuffer + (IObufFER_SIZE - filep->IOoffset), filep->IObuf, count - (IObufFER_SIZE - filep->IOoffset));
 
-		/* Reset pointer that indicates our position in buffer */
-		filep->bufcount = 0;
+		/* Reset pointer that indicates our position in IObuffer */
+		filep->IOoffset = 0;
 		//reset offset as well
 		return count;
 	}
 
-	/* CASE 2b: User attempts to read an amount of bytes that our buffer can handle; 
-	   copy relevant bytes and update pointer that indcates our position in buffer */
-	memcpy(userbuffer, filep->buf + filep->bufcount, count); //add offset to position in buffer
-	filep->bufcount += count;
+	/* CASE 2b: User attempts to read an amount of bytes that our IObuffer can handle; 
+	   copy relevant bytes and update pointer that indcates our position in IObuffer */
+	memcpy(userIObuffer, filep->IObuf + filep->IOoffset, count); //add offset to position in IObuffer
+	filep->IOoffset += count;
 	return count;
 	
 }
 
-// void mywrite(MYFILE* filep, char *inputbuf, int count) {
-	
-// 	//TODO: HOW TO HANDLE ERRORS? SET ERRNO AND RETURN -1 LIKE write(2) OR DO LIKE fwrite(3)
-// 	/* Put all of what our user specified in our MYFILE buffer */
-// 	/* If there is enough room in the buffer, do the memcpy into filep->buf */
-// 	if (count < filep->bufsize - filep->bufcount) {
-// 		memcpy(filep->buf, inputbuf, count);
-// 		//TODO: if filep->buf is full do the write
-// 	} else {
-// 		memcpy(filep->buf, inputbuf, )
-// 		//TODO: SOMETHING with memcpy;
-// 	}
-// 	//Before successful return from write(), the file offset shall be incremented by the number of bytes actually written.
-// 	//TODO: OTHERWISE IF FULL, ACTUALLY WRITE
+int mywrite(MYFILE* filep, const char *inbuf, int count) {
+	int nbytetomemcpy = 0;
+	int inbufoffset = 0;
 
-// 	//TODO: Before successful return from write(), the file offset shall be incremented by the number of bytes actually written.
-// 	return;
-// }
+	/* Update fileoffset by the fake amount that the user wanted to write */
+	int IObufspace = filep->IOsiz - filep->IOcnt;
+
+	filep->fileoffset += count;
+	nbytetomemcpy = count;
+
+	/* We check that our flags are fine */
+	if ((filep->flags & (O_RDWR|O_WRONLY)) != O_RDWR && (filep->flags & (O_RDWR|O_WRONLY)) != O_WRONLY) { //TODO: CHECK CORRECTNESS
+		exit(1);
+	}
+
+	/* If we want to write something that exceeds the capacity of our buffer, might as well call it directly */
+	if (count > filep->IOsiz) {
+		
+		/* Flush any previously buffered items and then call write as we write something larger than even our buffer size */
+		write(filep->filedesc, filep->IObuf, filep->IOcnt); //myflush(filep);
+		if (write(filep->filedesc, inbuf, count+2) < 0) {
+			return -1;
+		}
+		nbytetomemcpy = 0;
+		filep->IOoffset = 0;
+		filep->IOcnt = 0;
+	}
+	
+	/* If we attempt to write larger than buffer space including that we have stuff in the buffer from before */
+	else if (filep->IOcnt + count >= filep->IOsiz) { //==?
+		nbytetomemcpy = IObufspace;
+		memcpy(filep->IObuf + filep->IOoffset, inbuf, nbytetomemcpy);
+		write(filep->filedesc, filep->IObuf, filep->IOsiz); //myflush(filep);
+		nbytetomemcpy = count - nbytetomemcpy;
+		inbufoffset += nbytetomemcpy;
+		filep->IOoffset = 0;
+		filep->IOcnt = 0;
+	}
+
+	memcpy(filep->IObuf + filep->IOoffset, inbuf + inbufoffset, nbytetomemcpy);
+	filep->IOcnt += nbytetomemcpy;
+	filep->IOoffset = filep->IOcnt;
+
+	printf("%d\n", filep->IOcnt);
+	printf("%s\n", filep->IObuf);
+
+	/* If we attempt to write less than space is available, simply add it to IObuf */
+	return count;
+}
 
 void myflush(MYFILE* filep) { 	//if it's not full, flush it
 
 	//IT WILL never stay full (we read or write at any point that it's full, so no need to check that here(?))
 	
-	//calls write with however much is left the buffer (into whose buffer tho?)
-	if (write(filep->filedesc, filep->buf, filep->bufcount) != 0) {
+	//calls write with however much is left the IObuffer (into whose IObuffer tho?)
+	if (write(filep->filedesc, filep->IObuf, filep->IOoffset) != 0) {
 		perror("write");
 	}
 }
 
 int myseek(MYFILE *filep, int offset, int whence) {
 
-	//BUFFERING LSEEK ENTAILS HAVING ENOUGH SPACE IN BUFFER TO ARTIFICIALLY CHANGE OUR FILEDESCRIPTOR'S OFFSET WITHOUT HAVING TO INVOKE LSEEK
+	//IObufFERING LSEEK ENTAILS HAVING ENOUGH SPACE IN IObufFER TO ARTIFICIALLY CHANGE OUR FILEDESCRIPTOR'S OFFSET WITHOUT HAVING TO INVOKE LSEEK
 	//when do we wanna call lseek??
 	//similar cases to read	
 
-	/* CASE 1: Try to seek past what's currently in our buffer */
-	//I SAY: WHEN WE TRY TO lseek(more than is currently in our buffer OR more than buffersize? (same for read & write?)) -> should just give in
+	/* CASE 1: Try to seek past what's currently in our IObuffer */
+	//I SAY: WHEN WE TRY TO lseek(more than is currently in our IObuffer OR more than IObuffersize? (same for read & write?)) -> should just give in
 
 	/*Just need one???*/ /*W!!!!!*/ //WORKS FOR NOW 
-	if(offset > BUFFER_SIZE || filep->bufcount + offset > BUFFER_SIZE) { //whether we do seek or cur we're cooked
-		if((filep->useroffset = lseek(filep->filedesc, offset, whence)) == -1) {
+	if(offset > IObufFER_SIZE ||m filep->IOoffset + offset > IObufFER_SIZE) { //whether we do seek or cur we're cooked
+		if((filep->fileoffset = lseek(filep->filedesc, offset, whence)) == -1) {
 			perror("lseek");
-			}
+		}
 
-		//DON'T THINK I NEED THIS; DON'T care about remainder or capturing what we lseek before new buffer is initialized
+		//DON'T THINK I NEED THIS; DON'T care about remainder or capturing what we lseek before new IObuffer is initialized
 		// printf("in here h\n");
-		// printf("%d\n", filep->useroffset);
-		// printf("%d\n", (filep->useroffset/BUFFER_SIZE));
-		// filep->ouroffset = filep->useroffset - (filep->useroffset/BUFFER_SIZE) * BUFFER_SIZE ; //do some smart calculation; //should be capped out at BUFFER_size (will give us position in our buffer where our data will be)
+		// printf("%d\n", filep->fileoffset);
+		// printf("%d\n", (filep->fileoffset/IObufFER_SIZE));
+		// filep->ouroffset = filep->fileoffset - (filep->fileoffset/IObufFER_SIZE) * IObufFER_SIZE ; //do some smart calculation; //should be capped out at IObufFER_size (will give us position in our IObuffer where our data will be)
 		// printf("%d\n", filep->ouroffset);
 
-		return filep->useroffset;
+		return filep->fileoffset;
 	}
 
 
-	/* CASE 2: Try to seek within the limit of our buffer*/
+	/* CASE 2: Try to seek within the limit of our IObuffer*/
 
-	//could go out with seek_cur if (filep->bufcount + offset > BUFFER_SIZE)
-	// if(filep->bufcount + offset > BUFFER_SIZE) {
+	//could go out with seek_cur if (filep->IOoffset + offset > IObufFER_SIZE)
+	// if(filep->IOoffset + offset > IObufFER_SIZE) {
 		
 	// }
 
 
-	//do need to update our bufcount
+	//do need to update our IOoffset
 	
 
 	
 	// /* Case 1a: seek_set */
 	// if(whence == SEEK_SET) {
-	// 	if(offset > BUFFER_SIZE) {
+	// 	if(offset > IObufFER_SIZE) {
 	// 		if(lseek(filep->filedesc, offset, SEEK_SET) == -1) {
 	// 		perror("lseek");
 	// 		}
@@ -204,15 +231,15 @@ int myseek(MYFILE *filep, int offset, int whence) {
 	// /* Case 1b: see_cur */ //how does it know it's current location //how do I keep track of that //has internal offset thing going on
 	// //i dont need to be aware of it
 	// if(whence == SEEK_CUR) {
-	// 	if(offset + filep> filep->bufcount) {
+	// 	if(offset + filep> filep->IOoffset) {
 	// 		if(lseek(filep->filedesc, offset, SEEK_SET) == -1) {
 	// 		perror("lseek");
 	// 		}
 	// 	}
 	// }
 		
-		// filep->bufcount = offset; //eh capped at buffsize
-		// filep->useroffset = offset;
+		// filep->IOoffset = offset; //eh capped at IObuffsize
+		// filep->fileoffset = offset;
 
 		return -1;
 
@@ -225,13 +252,13 @@ int myseek(MYFILE *filep, int offset, int whence) {
 /* CASE 2: SEEK_CUR */
 
 	// if(whence == SEEK_CUR) {
-	// 	filep->bufcount += offset; //eh capped at buffsize
-	// 	filep->useroffset += offset;
+	// 	filep->IOoffset += offset; //eh capped at IObuffsize
+	// 	filep->fileoffset += offset;
 	// }
 
 	// return 1;
 
-	//"fake" useroffset: where they "are" in a file
+	//"fake" fileoffset: where they "are" in a file
 
 	//for return purposes:
 
@@ -239,7 +266,7 @@ int myseek(MYFILE *filep, int offset, int whence) {
 
 	//fake = offset	
 
-	//our offset: where we are in our buffer (filep->bufcount) //MUST update this
+	//our offset: where we are in our IObuffer (filep->IOoffset) //MUST update this
 
 //}
 
@@ -248,7 +275,7 @@ int myclose(MYFILE* filep) {
 	//myflush()
 
 	//free everything
-	free(filep->buf);
+	free(filep->IObuf);
 	free(filep); //free struct
 	
 
