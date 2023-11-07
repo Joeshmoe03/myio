@@ -12,6 +12,8 @@ typedef struct {
 	int IOsiz;
 	int fileoffset;
 	int IOoffset;
+	int waswrite;
+	int wasread;
 	//SOMETHING;
 } MYFILE;
 

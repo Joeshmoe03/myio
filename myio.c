@@ -9,7 +9,7 @@
 #include <math.h>
 #include "myio.h"
 
-#define IObufFER_SIZE 100
+#define BUFFER_SIZE 100
 
 /* This function attempts to malloc space for character IObuffer otherewise handles error */
 char* trycharmalloc(int size) {
@@ -38,7 +38,7 @@ MYFILE* tryFILEmalloc(int size) {
  * See: *https://man7.org/linux/man-pages/man3/fopen.3.html */
 MYFILE *myopen(const char* path, int flags) {
 	int filedesc;
-	char* fileIObuf = trycharmalloc(IObufFER_SIZE);
+	char* fileIObuf = trycharmalloc(BUFFER_SIZE);
 	MYFILE *filep = tryFILEmalloc(sizeof(MYFILE));
 	
 	/* If our flags contains O_CREAT or O_TRUNC or both we may assume mode 0666 
@@ -61,7 +61,7 @@ MYFILE *myopen(const char* path, int flags) {
 	filep->flags = flags;
 	filep->filedesc = filedesc;
 	filep->IObuf = fileIObuf;
-	filep->IOsiz = IObufFER_SIZE;
+	filep->IOsiz = BUFFER_SIZE;
 	filep->IOoffset = 0;
 	filep->fileoffset = 0;
 	return filep;
@@ -75,7 +75,7 @@ int myread(MYFILE* filep, char *userIObuffer, int count) {
 		
 	/* CASE 1: User asks to read more bytes than the max. our IObuffer can handle, so we skip IObuffering 
 	  and give them a read with however many bytes they want straight to their IObuffer */
-	if(count > IObufFER_SIZE) {
+	if(count > BUFFER_SIZE) {
 
 		/* read() returns negative for error; 0 for EOF (end-of-file) */
 		if(read((filep -> filedesc), userIObuffer, count) < 0) {
@@ -99,11 +99,11 @@ int myread(MYFILE* filep, char *userIObuffer, int count) {
 
 	/* CASE 2a: Possible RESET if there's bytes remaning in IObuffer and user attempts to read past the max. our IObuffer can handle*/ 
 	/*POINTER ARITHMETIC HELL*/ //if i'm still operating on same userIObuffer, i gotta use arithmetic to move along it
-	if(filep->IOoffset + count >= IObufFER_SIZE) { //add offset
+	if(filep->IOoffset + count >= BUFFER_SIZE) { //add offset
 
 		/* Copy remaining bytes - what's left in OUR IObuffer that can help satisfy a portion of this myread() call -
 		   from OUR IObuffer to User's IObuffer, this will still leave some bytes from THIS myread() call without being read & copied yet */
-		memcpy(userIObuffer, filep->IObuf + filep->IOoffset, (IObufFER_SIZE - filep->IOoffset)); //add offset 
+		memcpy(userIObuffer, filep->IObuf + filep->IOoffset, (BUFFER_SIZE - filep->IOoffset)); //add offset 
 
 		/* Overwrite OUR IObuffer and completely fill it with new data */
 		if(read((filep -> filedesc), filep->IObuf, filep->IOsiz) < 0) {
@@ -112,7 +112,7 @@ int myread(MYFILE* filep, char *userIObuffer, int count) {
 		}	
 
 		/* Copy the rest of the bytes necessary to fulfill THIS myread() call */
-		memcpy(userIObuffer + (IObufFER_SIZE - filep->IOoffset), filep->IObuf, count - (IObufFER_SIZE - filep->IOoffset));
+		memcpy(userIObuffer + (BUFFER_SIZE - filep->IOoffset), filep->IObuf, count - (BUFFER_SIZE - filep->IOoffset));
 
 		/* Reset pointer that indicates our position in IObuffer */
 		filep->IOoffset = 0;
@@ -204,7 +204,7 @@ int myseek(MYFILE *filep, int offset, int whence) {
 	//I SAY: WHEN WE TRY TO lseek(more than is currently in our IObuffer OR more than IObuffersize? (same for read & write?)) -> should just give in
 
 	/*Just need one???*/ /*W!!!!!*/ //WORKS FOR NOW 
-	if(offset > IObufFER_SIZE || filep->IOoffset + offset > IObufFER_SIZE) { //whether we do seek or cur we're cooked
+	if(offset > BUFFER_SIZE || filep->IOoffset + offset > BUFFER_SIZE) { //whether we do seek or cur we're cooked
 		if((filep->fileoffset = lseek(filep->filedesc, offset, whence)) == -1) {
 			perror("lseek");
 		}
@@ -212,8 +212,8 @@ int myseek(MYFILE *filep, int offset, int whence) {
 		//DON'T THINK I NEED THIS; DON'T care about remainder or capturing what we lseek before new IObuffer is initialized
 		// printf("in here h\n");
 		// printf("%d\n", filep->fileoffset);
-		// printf("%d\n", (filep->fileoffset/IObufFER_SIZE));
-		// filep->ouroffset = filep->fileoffset - (filep->fileoffset/IObufFER_SIZE) * IObufFER_SIZE ; //do some smart calculation; //should be capped out at IObufFER_size (will give us position in our IObuffer where our data will be)
+		// printf("%d\n", (filep->fileoffset/BUFFER_SIZE));
+		// filep->ouroffset = filep->fileoffset - (filep->fileoffset/BUFFER_SIZE) * BUFFER_SIZE ; //do some smart calculation; //should be capped out at IObufFER_size (will give us position in our IObuffer where our data will be)
 		// printf("%d\n", filep->ouroffset);
 
 		return filep->fileoffset;
@@ -222,8 +222,8 @@ int myseek(MYFILE *filep, int offset, int whence) {
 
 	/* CASE 2: Try to seek within the limit of our IObuffer*/
 
-	//could go out with seek_cur if (filep->IOoffset + offset > IObufFER_SIZE)
-	// if(filep->IOoffset + offset > IObufFER_SIZE) {
+	//could go out with seek_cur if (filep->IOoffset + offset > BUFFER_SIZE)
+	// if(filep->IOoffset + offset > BUFFER_SIZE) {
 		
 	// }
 
@@ -234,7 +234,7 @@ int myseek(MYFILE *filep, int offset, int whence) {
 	
 	/* Case 1a: seek_set */
 	if(whence == SEEK_SET) {
-		if(offset > IObufFER_SIZE) {
+		if(offset > BUFFER_SIZE) {
 			if(lseek(filep->filedesc, offset, SEEK_SET) == -1) {
 			perror("lseek");
 			}
