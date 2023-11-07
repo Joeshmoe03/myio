@@ -6,12 +6,13 @@
 #define __MYIO_H
 
 typedef struct {
+	int flags;
 	int filedesc;
-	char *buf;
-	int bufsize;
-	int bufcount;
-	int useroffset;
-	int ouroffset;
+	char *IObuf;
+	int IOsiz;
+	int IOcnt;
+	int fileoffset;
+	int IOoffset;
 	//SOMETHING;
 } MYFILE;
 
@@ -20,7 +21,7 @@ typedef struct {
 /* Function prototype for myopen */
 MYFILE* myopen(const char* path, int flags);
 
-void mywrite(MYFILE* filep, char *buf, int count);
+int mywrite(MYFILE* filep, const char *inbuf, int count);
 
 int myclose();
 
