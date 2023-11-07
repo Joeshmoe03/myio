@@ -191,7 +191,7 @@ int myseek(MYFILE *filep, int offset, int whence) {
 	//I SAY: WHEN WE TRY TO lseek(more than is currently in our IObuffer OR more than IObuffersize? (same for read & write?)) -> should just give in
 
 	/*Just need one???*/ /*W!!!!!*/ //WORKS FOR NOW 
-	if(offset > IObufFER_SIZE ||m filep->IOoffset + offset > IObufFER_SIZE) { //whether we do seek or cur we're cooked
+	if(offset > IObufFER_SIZE || filep->IOoffset + offset > IObufFER_SIZE) { //whether we do seek or cur we're cooked
 		if((filep->fileoffset = lseek(filep->filedesc, offset, whence)) == -1) {
 			perror("lseek");
 		}
@@ -219,19 +219,19 @@ int myseek(MYFILE *filep, int offset, int whence) {
 	
 
 	
-	// /* Case 1a: seek_set */
-	// if(whence == SEEK_SET) {
-	// 	if(offset > IObufFER_SIZE) {
-	// 		if(lseek(filep->filedesc, offset, SEEK_SET) == -1) {
-	// 		perror("lseek");
-	// 		}
-	// 	}
-	// }
+	/* Case 1a: seek_set */
+	if(whence == SEEK_SET) {
+		if(offset > IObufFER_SIZE) {
+			if(lseek(filep->filedesc, offset, SEEK_SET) == -1) {
+			perror("lseek");
+			}
+		}
+	}
 
 	// /* Case 1b: see_cur */ //how does it know it's current location //how do I keep track of that //has internal offset thing going on
 	// //i dont need to be aware of it
 	// if(whence == SEEK_CUR) {
-	// 	if(offset + filep> filep->IOoffset) {
+	// 	if(offset + filep > filep->IOoffset) {
 	// 		if(lseek(filep->filedesc, offset, SEEK_SET) == -1) {
 	// 		perror("lseek");
 	// 		}
