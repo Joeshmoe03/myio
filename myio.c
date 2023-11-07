@@ -15,7 +15,8 @@
 char* trycharmalloc(int size) {
 	char* IObuf = malloc(size);
 	if (IObuf == NULL) {
-		perror("malloc");
+		free(IObuf);
+		perror("malloc"); //TODO: CORRECT HANDLING?
 		exit(1);
 	}
 	return IObuf;
@@ -25,7 +26,8 @@ char* trycharmalloc(int size) {
 MYFILE* tryFILEmalloc(int size) {
 	MYFILE* filep = malloc(sizeof(MYFILE));
 	if (filep == NULL) {
-		perror("malloc");
+		free(filep);
+		perror("malloc"); //TODO CORRECT HANDLING?
 		exit(1);
 	}
 	return filep; 
@@ -45,16 +47,21 @@ MYFILE *myopen(const char* path, int flags) {
 		(flags & (O_CREAT|O_TRUNC)) == O_CREAT || 
 		(flags & (O_CREAT|O_TRUNC)) == O_TRUNC) {
 		filedesc = open(path, flags, 0666);
+		if (filedesc == -1) {
+			return NULL;
+		}
 	} else {
 		filedesc = open(path, flags);
-	} //I DON'T THINK WE NEED TO HANDLE PERROR SINCE OPEN AND FOPEN DOESN'T SAY ANYTHING?
+		if (filedesc == -1) {
+			return NULL;
+		}
+	}
 
 	/* We fill our IObuffer with our filedescriptor and make space */
 	filep->flags = flags;
-	filep->filedesc = filedesc; //?
+	filep->filedesc = filedesc;
 	filep->IObuf = fileIObuf;
 	filep->IOsiz = IObufFER_SIZE;
-	filep->IOcnt = 0;
 	filep->IOoffset = 0;
 	filep->fileoffset = 0;
 	return filep;
@@ -126,7 +133,7 @@ int mywrite(MYFILE* filep, const char *inbuf, int count) {
 	int inbufoffset = 0;
 
 	/* Update fileoffset by the fake amount that the user wanted to write */
-	int IObufspace = filep->IOsiz - filep->IOcnt;
+	int IObufspace = filep->IOsiz - filep->IOoffset;
 
 	filep->fileoffset += count;
 	nbytetomemcpy = count;
@@ -140,45 +147,51 @@ int mywrite(MYFILE* filep, const char *inbuf, int count) {
 	if (count > filep->IOsiz) {
 		
 		/* Flush any previously buffered items and then call write as we write something larger than even our buffer size */
-		write(filep->filedesc, filep->IObuf, filep->IOcnt); //myflush(filep);
-		if (write(filep->filedesc, inbuf, count+2) < 0) {
-			return -1;
+		myflush(filep);
+		filep->IOoffset = 0;
+		if (write(filep->filedesc, inbuf, count) < 0) {
+			filep->IOoffset = 0;
+			return EOF;
 		}
 		nbytetomemcpy = 0;
-		filep->IOoffset = 0;
-		filep->IOcnt = 0;
 	}
 	
 	/* If we attempt to write larger than buffer space including that we have stuff in the buffer from before */
-	else if (filep->IOcnt + count >= filep->IOsiz) { //==?
+	else if (filep->IOoffset + count >= filep->IOsiz) {
+
+		/* Fill all possible buffer space, flush, and calculate how much more we have to put in buff to enter default case */
 		nbytetomemcpy = IObufspace;
 		memcpy(filep->IObuf + filep->IOoffset, inbuf, nbytetomemcpy);
-		write(filep->filedesc, filep->IObuf, filep->IOsiz); //myflush(filep);
+		filep->IOoffset = filep->IOsiz;
+		myflush(filep);
 		nbytetomemcpy = count - nbytetomemcpy;
 		inbufoffset += nbytetomemcpy;
 		filep->IOoffset = 0;
-		filep->IOcnt = 0;
 	}
 
+	/* Default case of put everything specified in buf since it is not more than bufsize and return fake count */
 	memcpy(filep->IObuf + filep->IOoffset, inbuf + inbufoffset, nbytetomemcpy);
-	filep->IOcnt += nbytetomemcpy;
-	filep->IOoffset = filep->IOcnt;
-
-	printf("%d\n", filep->IOcnt);
-	printf("%s\n", filep->IObuf);
-
-	/* If we attempt to write less than space is available, simply add it to IObuf */
+	filep->IOoffset += nbytetomemcpy;
 	return count;
 }
 
-void myflush(MYFILE* filep) { 	//if it's not full, flush it
-
-	//IT WILL never stay full (we read or write at any point that it's full, so no need to check that here(?))
+int myflush(MYFILE* filep) {
 	
-	//calls write with however much is left the IObuffer (into whose IObuffer tho?)
-	if (write(filep->filedesc, filep->IObuf, filep->IOoffset) != 0) {
-		perror("write");
+	/* We check that our flags are fine */
+	if ((filep->flags & (O_RDWR|O_WRONLY)) != O_RDWR && (filep->flags & (O_RDWR|O_WRONLY)) != O_WRONLY) { //TODO: CHECK CORRECTNESS
+		filep->IOoffset = 0;
+		return EOF;
 	}
+	
+	/* calls write with however much is left the IObuffer */
+	if (write(filep->filedesc, filep->IObuf, filep->IOoffset) < 0) {
+		filep->IOoffset = 0;
+		return EOF;
+	}
+
+	/* Returns 0 on success otherwise previously EOF is returned */
+	filep->IOoffset = 0;
+	return 0;
 }
 
 int myseek(MYFILE *filep, int offset, int whence) {
@@ -271,8 +284,8 @@ int myseek(MYFILE *filep, int offset, int whence) {
 //}
 
 int myclose(MYFILE* filep) {
-	//call flush
-	//myflush()
+	//call flush???
+	myflush(filep);
 
 	//free everything
 	free(filep->IObuf);

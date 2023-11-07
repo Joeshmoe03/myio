@@ -10,7 +10,6 @@ typedef struct {
 	int filedesc;
 	char *IObuf;
 	int IOsiz;
-	int IOcnt;
 	int fileoffset;
 	int IOoffset;
 	//SOMETHING;
@@ -23,11 +22,11 @@ MYFILE* myopen(const char* path, int flags);
 
 int mywrite(MYFILE* filep, const char *inbuf, int count);
 
-int myclose();
+int myclose(MYFILE *filep);
 
 int myread(MYFILE* filep, char *userbuffer, int count);
 
-void myflush();
+int myflush(MYFILE *filep);
 
 int myseek(MYFILE *filep, int offset, int whence);
 
