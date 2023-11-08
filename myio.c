@@ -9,7 +9,7 @@
 #include <math.h>
 #include "myio.h"
 
-#define BUFFER_SIZE 100
+#define BUFFER_SIZE 25
 
 /* This function attempts to malloc space for character IObuffer otherewise handles error */
 char* trycharmalloc(int size) {
@@ -64,18 +64,21 @@ MYFILE *myopen(const char* path, int flags) {
 	filep->IOsiz = BUFFER_SIZE;
 	filep->IOoffset = 0;
 	filep->fileoffset = 0;
+	filep->wasread = 0;
+	filep->waswrite = 0;
 	return filep;
 }
 
 
 int myread(MYFILE* filep, char *userIObuffer, int count) {
 
+	int remainder = 0;
 	// //WHAT DO WE DO IF the user is being silly (count is greater than the size they allocated for their userIObuffer), give them as much as you can, then die? (this is what read does), 
 	// //but we can't give anything with memcpy (instant segfault); memmove()???
 		
 	/* CASE 1: User asks to read more bytes than the max. our IObuffer can handle, so we skip IObuffering 
 	  and give them a read with however many bytes they want straight to their IObuffer */
-	if(count > BUFFER_SIZE) {
+	if(count > BUFFER_SIZE && filep->IOoffset == 0) { //count - remainder or is it for case 2a???
 
 		/* read() returns negative for error; 0 for EOF (end-of-file) */
 		if(read((filep -> filedesc), userIObuffer, count) < 0) {
@@ -83,6 +86,7 @@ int myread(MYFILE* filep, char *userIObuffer, int count) {
 				return -1;
 			}		
 		return count;
+		//not updating fileIOoffset to 0 b/cuz it's already 0 
 	}
 
 	/* CASE 2: User asks to read less bytes than the max. our IObuffer can handle */
@@ -100,10 +104,31 @@ int myread(MYFILE* filep, char *userIObuffer, int count) {
 	/* CASE 2a: Possible RESET if there's bytes remaning in IObuffer and user attempts to read past the max. our IObuffer can handle*/ 
 	/*POINTER ARITHMETIC HELL*/ //if i'm still operating on same userIObuffer, i gotta use arithmetic to move along it
 	if(filep->IOoffset + count >= BUFFER_SIZE) { //add offset
-
+		//printf("in here for sure\n");
 		/* Copy remaining bytes - what's left in OUR IObuffer that can help satisfy a portion of this myread() call -
 		   from OUR IObuffer to User's IObuffer, this will still leave some bytes from THIS myread() call without being read & copied yet */
 		memcpy(userIObuffer, filep->IObuf + filep->IOoffset, (BUFFER_SIZE - filep->IOoffset)); //add offset 
+
+		/* Calculate remainder */
+		remainder = count - (BUFFER_SIZE - filep->IOoffset);
+		//printf("%d", remainder);
+		//NEED to add case, where if the count - remainder > BUFFER SIZE we do case 1; yep cuz Case 1 does not handle it!!
+		/*DID IT, but maybe better way to do this with more efficient case-handling
+		+ does this need to be applied to mywrite 
+		+ do we need to keep remainder in the struct??*/
+		if (remainder > BUFFER_SIZE) {
+			//printf("are we in here?\n");
+			//printf("%d", remainder);
+			/* read() returns negative for error; 0 for EOF (end-of-file) */
+			if(read((filep -> filedesc), userIObuffer + (BUFFER_SIZE - filep->IOoffset), count - (BUFFER_SIZE - filep->IOoffset)) < 0) {
+					perror("read");
+					return -1;
+				}		
+				
+			return count;
+			
+			//offset is still 0
+		}
 
 		/* Overwrite OUR IObuffer and completely fill it with new data */
 		if(read((filep -> filedesc), filep->IObuf, filep->IOsiz) < 0) {
@@ -195,113 +220,40 @@ int myflush(MYFILE* filep) {
 }
 
 int myseek(MYFILE *filep, int offset, int whence) {
-
-	//IObufFERING LSEEK ENTAILS HAVING ENOUGH SPACE IN IObufFER TO ARTIFICIALLY CHANGE OUR FILEDESCRIPTOR'S OFFSET WITHOUT HAVING TO INVOKE LSEEK
-	//when do we wanna call lseek??
-	//similar cases to read	
-
-	/* CASE 1: Try to seek past what's currently in our IObuffer */
-	//I SAY: WHEN WE TRY TO lseek(more than is currently in our IObuffer OR more than IObuffersize? (same for read & write?)) -> should just give in
-
-	/*Just need one???*/ /*W!!!!!*/ //WORKS FOR NOW 
-	if(offset > BUFFER_SIZE || filep->IOoffset + offset > BUFFER_SIZE) { //whether we do seek or cur we're cooked
-		if((filep->fileoffset = lseek(filep->filedesc, offset, whence)) == -1) {
-			perror("lseek");
-		}
-
-		//DON'T THINK I NEED THIS; DON'T care about remainder or capturing what we lseek before new IObuffer is initialized
-		// printf("in here h\n");
-		// printf("%d\n", filep->fileoffset);
-		// printf("%d\n", (filep->fileoffset/BUFFER_SIZE));
-		// filep->ouroffset = filep->fileoffset - (filep->fileoffset/BUFFER_SIZE) * BUFFER_SIZE ; //do some smart calculation; //should be capped out at IObufFER_size (will give us position in our IObuffer where our data will be)
-		// printf("%d\n", filep->ouroffset);
-
-		return filep->fileoffset;
-	}
-
-
-	/* CASE 2: Try to seek within the limit of our IObuffer*/
-
-	//could go out with seek_cur if (filep->IOoffset + offset > BUFFER_SIZE)
-	// if(filep->IOoffset + offset > BUFFER_SIZE) {
-		
-	// }
-
-
-	//do need to update our IOoffset
 	
-
-	
-	/* Case 1a: seek_set */
+	/* CASE 1: SEEK_SET */
 	if(whence == SEEK_SET) {
-		if(offset > BUFFER_SIZE) {
-			if(lseek(filep->filedesc, offset, SEEK_SET) == -1) {
+		if((filep->fileoffset = lseek(filep->filedesc, offset, SEEK_SET)) < 0) {
 			perror("lseek");
-			}
+		}
+		filep->fileoffset = offset;
+	}
+
+	/* Case 2: SEEK_CUR */
+	else if(whence == SEEK_CUR) {
+		if((filep->fileoffset = lseek(filep->filedesc, filep->fileoffset + offset, SEEK_SET)) < 0) {
+			perror("lseek");
 		}
 	}
 
-	// /* Case 1b: see_cur */ //how does it know it's current location //how do I keep track of that //has internal offset thing going on
-	// //i dont need to be aware of it
-	// if(whence == SEEK_CUR) {
-	// 	if(offset + filep > filep->IOoffset) {
-	// 		if(lseek(filep->filedesc, offset, SEEK_SET) == -1) {
-	// 		perror("lseek");
-	// 		}
-	// 	}
-	// }
-		
-		// filep->IOoffset = offset; //eh capped at IObuffsize
-		// filep->fileoffset = offset;
-
-		return -1;
-
-		
+	else {
+		//error message for bad flag
 	}
 
-
-
-
-/* CASE 2: SEEK_CUR */
-
-	// if(whence == SEEK_CUR) {
-	// 	filep->IOoffset += offset; //eh capped at IObuffsize
-	// 	filep->fileoffset += offset;
-	// }
-
-	// return 1;
-
-	//"fake" fileoffset: where they "are" in a file
-
-	//for return purposes:
-
-	//fake + offset
-
-	//fake = offset	
-
-	//our offset: where we are in our IObuffer (filep->IOoffset) //MUST update this
-
-//}
+	return filep->fileoffset;
+}
 
 int myclose(MYFILE* filep) {
-	//call flush???
-	myflush(filep);
+	//call flush
+	//myflush()
+
+	if(close(filep->filedesc < 0)) {
+		perror("close");
+	}
 
 	//free everything
 	free(filep->IObuf);
 	free(filep); //free struct
 	
-
-	//call close()
-
 	return 0;
 }
-
-
-
-// int main(int argc, char *argv[]) {
-// 	//MYFILE* filep = myopen("hello.txt", O_CREAT | O_TRUNC | O_RDWR);
-// 	//mywrite(filep, "Hello", 2);
-// }
-
-
