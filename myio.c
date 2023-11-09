@@ -318,16 +318,20 @@ int myseek(MYFILE *filep, int offset, int whence) {
 }
 
 int myclose(MYFILE* filep) {
-	//call flush
-	//myflush()
 
+	/* If the last thing specified was a write, just flush */
+	if (filep->waswrite == 1) {
+		myflush(filep);
+	}	
+
+	/* Actually do the close */
 	if(close(filep->filedesc < 0)) {
 		perror("close");
 	}
 
-	//free everything
+	/* Free everything */
 	free(filep->IObuf);
-	free(filep); //free struct
+	free(filep);
 	
 	return 0;
 }
