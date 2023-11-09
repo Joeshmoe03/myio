@@ -9,7 +9,7 @@
 #include <math.h>
 #include "myio.h"
 
-#define BUFFER_SIZE 25
+#define BUFFER_SIZE 4096
 
 /* This function attempts to malloc space for character IObuffer otherewise handles error */
 char* trycharmalloc(int size) {
@@ -73,12 +73,10 @@ int myread(MYFILE* filep, char* outbuf, int count) {
 	int outbufoffset = 0;
 	int nbytetoread = count;
 
-	/* Reset buffer when moving between reads and writes. Note that myflush implicitly resets IOoffset to 0. */
+	/* Reset some flags when moving between reads and writes. */
 	if(filep->waswrite == 1) {
 		filep->wasread = 1;
 		filep->waswrite = 0;
-		myflush(filep);
-		//NOTE: fileoffset?
 	}
 
 	/* We check that our flags are fine */
@@ -229,8 +227,6 @@ int mywrite(MYFILE* filep, const char *inbuf, int count) {
 	if(filep->wasread == 1) {
 		filep->wasread = 0;
 		filep->waswrite = 1;
-		//NOTE: fileoffset?
-		filep->IOoffset = 0;
 	}
 
 	/* Update fileoffset by the fake amount that the user wanted to write */
@@ -293,29 +289,29 @@ int myflush(MYFILE* filep) {
 	return 0;
 }
 
-int myseek(MYFILE *filep, int offset, int whence) {
-	
-	/* CASE 1: SEEK_SET */
-	if(whence == SEEK_SET) {
-		if((filep->fileoffset = lseek(filep->filedesc, offset, SEEK_SET)) < 0) {
-			perror("lseek");
-		}
-		filep->fileoffset = offset;
-	}
-
-	/* Case 2: SEEK_CUR */
-	else if(whence == SEEK_CUR) {
-		if((filep->fileoffset = lseek(filep->filedesc, filep->fileoffset + offset, SEEK_SET)) < 0) {
-			perror("lseek");
-		}
-	}
-
-	else {
-		//error message for bad flag
-	}
-
-	return filep->fileoffset;
-}
+//int myseek(MYFILE *filep, int offset, int whence) {
+//	
+//	/* CASE 1: SEEK_SET */
+//	if(whence == SEEK_SET) {
+//		if((filep->fileoffset = lseek(filep->filedesc, offset, SEEK_SET)) < 0) {
+//			perror("lseek");
+//		}
+//		filep->fileoffset = offset;
+//	}
+//
+//	/* Case 2: SEEK_CUR */
+//	else if(whence == SEEK_CUR) {
+//		if((filep->fileoffset = lseek(filep->filedesc, filep->fileoffset + offset, SEEK_SET)) < 0) {
+//			perror("lseek");
+//		}
+//	}
+//
+//	else {
+//		//error message for bad flag
+//	}
+//
+//	return filep->fileoffset;
+//}
 
 int myclose(MYFILE* filep) {
 
