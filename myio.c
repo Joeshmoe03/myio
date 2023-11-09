@@ -72,10 +72,12 @@ MYFILE *myopen(const char* path, int flags) {
 int myread(MYFILE* filep, char* outbuf, int count) {
 	int outbufoffset = 0;
 	int nbytetoread = count;
-
+	
+	filep->fileoffset += count;
+	
 	/* Reset some flags when moving between reads and writes. */
+	filep->wasread = 1;
 	if(filep->waswrite == 1) {
-		filep->wasread = 1;
 		filep->waswrite = 0;
 	}
 
@@ -224,9 +226,10 @@ int mywrite(MYFILE* filep, const char *inbuf, int count) {
 	int inbufoffset = 0;
 
 	/* This handles logic for when I decide to move from read to write */
+	filep->waswrite = 1;
 	if(filep->wasread == 1) {
 		filep->wasread = 0;
-		filep->waswrite = 1;
+		//filep->waswrite = 1;
 	}
 
 	/* Update fileoffset by the fake amount that the user wanted to write */
@@ -272,6 +275,9 @@ int mywrite(MYFILE* filep, const char *inbuf, int count) {
 
 int myflush(MYFILE* filep) {
 	
+	filep->waswrite = 0;
+	filep->wasread = 0;
+
 	/* We check that our flags are fine */
 	if ((filep->flags & (O_RDWR|O_WRONLY)) != O_RDWR && (filep->flags & (O_RDWR|O_WRONLY)) != O_WRONLY) { //TODO: CHECK CORRECTNESS
 		filep->IOoffset = 0;
@@ -289,29 +295,40 @@ int myflush(MYFILE* filep) {
 	return 0;
 }
 
-//int myseek(MYFILE *filep, int offset, int whence) {
-//	
-//	/* CASE 1: SEEK_SET */
-//	if(whence == SEEK_SET) {
-//		if((filep->fileoffset = lseek(filep->filedesc, offset, SEEK_SET)) < 0) {
-//			perror("lseek");
-//		}
-//		filep->fileoffset = offset;
+int myseek(MYFILE *filep, int offset, int whence) {
+	
+	if (whence != SEEK_SET || whence != SEEK_CUR) {
+		return -1;
+	}
+
+	/* We flush if previous was a write */
+	if (filep->waswrite == 1) {
+		filep->waswrite = 0;
+		myflush(filep);
+	}
+
+	/* Otherwise if was a previous read */	
+//	else if (filep->wasread == 1) {
+//		filep->wasread = 0;
+//		filep->IOoffset = 0;
 //	}
-//
-//	/* Case 2: SEEK_CUR */
-//	else if(whence == SEEK_CUR) {
-//		if((filep->fileoffset = lseek(filep->filedesc, filep->fileoffset + offset, SEEK_SET)) < 0) {
-//			perror("lseek");
-//		}
-//	}
-//
-//	else {
-//		//error message for bad flag
-//	}
-//
-//	return filep->fileoffset;
-//}
+	
+	/* CASE 1: SEEK_SET */
+	if(whence == SEEK_SET) {
+		if((filep->fileoffset = lseek(filep->filedesc, offset, SEEK_SET)) < 0) {
+			perror("lseek");
+		}
+		filep->fileoffset = offset;
+	}
+
+	/* Case 2: SEEK_CUR */
+	else if(whence == SEEK_CUR) {
+		if((filep->fileoffset = lseek(filep->filedesc, filep->fileoffset + offset, SEEK_SET)) < 0) {
+			perror("lseek");
+		}
+	}
+	return filep->fileoffset;
+}
 
 int myclose(MYFILE* filep) {
 
