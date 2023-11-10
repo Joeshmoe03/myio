@@ -9,14 +9,14 @@
 #include <math.h>
 #include "myio.h"
 
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 25
 
 /* This function attempts to malloc space for character IObuffer otherewise handles error */
 char* trycharmalloc(int size) {
 	char* IObuf = malloc(size);
 	if (IObuf == NULL) {
 		free(IObuf);
-		perror("malloc"); //TODO: CORRECT HANDLING?
+		perror("malloc");
 		exit(1);
 	}
 	return IObuf;
@@ -27,7 +27,7 @@ MYFILE* tryFILEmalloc(int size) {
 	MYFILE* filep = malloc(sizeof(MYFILE));
 	if (filep == NULL) {
 		free(filep);
-		perror("malloc"); //TODO CORRECT HANDLING?
+		perror("malloc");
 		exit(1);
 	}
 	return filep; 
@@ -75,14 +75,11 @@ int myread(MYFILE* filep, char* outbuf, int count) {
 	
 	filep->fileoffset += count;
 	
-	/* Reset some flags when moving between reads and writes. */
-	filep->wasread = 1;
-	if(filep->waswrite == 1) {
-		filep->waswrite = 0;
-	}
+	/* Reset some flag when moving between reads and writes. */
+	filep->waswrite = 0;	
 
 	/* We check that our flags are fine */
-	if ((filep->flags & (O_RDWR|O_RDONLY)) != O_RDWR && (filep->flags & (O_RDWR|O_RDONLY)) != O_RDONLY) { //TODO: CHECK CORRECTNESS, IS NECESSARY PETE?
+	if ((filep->flags & (O_RDWR|O_RDONLY)) != O_RDWR && (filep->flags & (O_RDWR|O_RDONLY)) != O_RDONLY) {
 		exit(1);
 	}
 
@@ -123,7 +120,8 @@ int myread(MYFILE* filep, char* outbuf, int count) {
 	/* If our IObuf is either empty on start or has exhausted everything to be read into outbuf we read again
  	* This also takes care of scenario of rebuffering when count + IOoffset was larger than buffer size and we still
  	* need to read a little bit beyond the bounds of IObuf to the user's buffer	*/
-	if (filep->IOoffset == 0 && nbytetoread != 0) { //was filep->IOsiz
+	if (filep->IOoffset == 0 && nbytetoread != 0) {
+		memset(filep->IObuf, '\0', filep->IOsiz);
 		if (read(filep->filedesc, filep->IObuf + filep->IOoffset, filep->IOsiz) < 0) {
 			exit(1);
 		}
@@ -226,18 +224,14 @@ int mywrite(MYFILE* filep, const char *inbuf, int count) {
 	int inbufoffset = 0;
 
 	/* This handles logic for when I decide to move from read to write */
-	filep->waswrite = 1;
-	if(filep->wasread == 1) {
-		filep->wasread = 0;
-		//filep->waswrite = 1;
-	}
+	filep->waswrite = 1;	
 
 	/* Update fileoffset by the fake amount that the user wanted to write */
 	int IObufspace = filep->IOsiz - filep->IOoffset;
 	filep->fileoffset += count;
 
 	/* We check that our flags are fine */
-	if ((filep->flags & (O_RDWR|O_WRONLY)) != O_RDWR && (filep->flags & (O_RDWR|O_WRONLY)) != O_WRONLY) { //TODO: CHECK CORRECTNESS, IS NECESSARY PETE?
+	if ((filep->flags & (O_RDWR|O_WRONLY)) != O_RDWR && (filep->flags & (O_RDWR|O_WRONLY)) != O_WRONLY) {
 		exit(1);
 	}
 
@@ -262,14 +256,13 @@ int mywrite(MYFILE* filep, const char *inbuf, int count) {
 		filep->IOoffset = filep->IOsiz;
 		myflush(filep);
 		nbytetomemcpy = count - nbytetomemcpy;
-		inbufoffset += nbytetomemcpy;
+		inbufoffset += IObufspace;
 		filep->IOoffset = 0;
 	}
 
 	/* Default case of put everything specified in buf since it is not more than bufsize and return fake count */
 	memcpy(filep->IObuf + filep->IOoffset, inbuf + inbufoffset, nbytetomemcpy);
 	filep->IOoffset += nbytetomemcpy;
-	filep->waswrite = 1;
 	return count;
 }
 
@@ -290,14 +283,14 @@ int myflush(MYFILE* filep) {
 		exit(1);
 	}
 
-	/* Returns 0 on success otherwise previously EOF is returned */
+	/* Returns 0 on success */
 	filep->IOoffset = 0;
 	return 0;
 }
 
-int myseek(MYFILE *filep, int offset, int whence) {
-	
-	if (whence != SEEK_SET || whence != SEEK_CUR) {
+int myseek(MYFILE *filep, int offset, int whence) {	
+
+	if (whence != SEEK_SET && whence != SEEK_CUR) {
 		return -1;
 	}
 
@@ -306,12 +299,6 @@ int myseek(MYFILE *filep, int offset, int whence) {
 		filep->waswrite = 0;
 		myflush(filep);
 	}
-
-	/* Otherwise if was a previous read */	
-//	else if (filep->wasread == 1) {
-//		filep->wasread = 0;
-//		filep->IOoffset = 0;
-//	}
 	
 	/* CASE 1: SEEK_SET */
 	if(whence == SEEK_SET) {
@@ -319,6 +306,7 @@ int myseek(MYFILE *filep, int offset, int whence) {
 			perror("lseek");
 		}
 		filep->fileoffset = offset;
+		filep->IOoffset = 0;
 	}
 
 	/* Case 2: SEEK_CUR */
@@ -326,6 +314,7 @@ int myseek(MYFILE *filep, int offset, int whence) {
 		if((filep->fileoffset = lseek(filep->filedesc, filep->fileoffset + offset, SEEK_SET)) < 0) {
 			perror("lseek");
 		}
+		filep->IOoffset = 0;
 	}
 	return filep->fileoffset;
 }
@@ -338,7 +327,7 @@ int myclose(MYFILE* filep) {
 	}	
 
 	/* Actually do the close */
-	if(close(filep->filedesc < 0)) {
+	if(close(filep->filedesc) < 0) {
 		perror("close");
 	}
 
