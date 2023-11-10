@@ -69,155 +69,168 @@ MYFILE *myopen(const char* path, int flags) {
 	return filep;
 }
 
-int myread(MYFILE* filep, char* outbuf, int count) {
-	int outbufoffset = 0;
-	int nbytetoread = count;
-	
-	filep->fileoffset += count;
-	
-	/* Reset some flag when moving between reads and writes. */
-	filep->waswrite = 0;	
-
-	/* We check that our flags are fine */
-	if ((filep->flags & (O_RDWR|O_RDONLY)) != O_RDWR && (filep->flags & (O_RDWR|O_RDONLY)) != O_RDONLY) {
-		exit(1);
-	}
-
-	/* If user wants to read an obscene amount, let them: first extract rest from IObuf and then use syscall directly */
-	if (count > filep->IOsiz) {
-		nbytetoread = filep->IOsiz - filep->IOoffset;
-		if (filep->IOoffset == 0) {
-			nbytetoread = 0;
-		}
-		memcpy(outbuf + outbufoffset, filep->IObuf + filep->IOoffset, nbytetoread);
-		filep->IOoffset = 0;
-		outbufoffset += nbytetoread;
-		nbytetoread = count - nbytetoread;
-
-		/* Attempt a read with error handling directly on outbuf with no buffering (IObuf) */
-		if (read(filep->filedesc, outbuf + outbufoffset, nbytetoread) < 0) {
-			exit(1);
-		}
-		
-		/* Update nbytetoread: nothing left to read for later as we used syscall directly */
-		outbufoffset += nbytetoread;
-		nbytetoread = 0;
-	}
-
-	/* If count is not larger than IObuf, but factoring items already in IObuf, it is */
-	else if (count + filep->IOoffset > filep->IOsiz) {
-
-		/* Lets first read the rest of buffered stuff in IObuf to the user's buffer and update some
- 		* buffer tracking variables: offset is now buffer size since we exhausted our buffer, nbytetoread
- 		* is the count factoring what we just read from the buffer */
-		nbytetoread = filep->IOsiz - filep->IOoffset;
-		memcpy(outbuf + outbufoffset, filep->IObuf + filep->IOoffset, nbytetoread);
-		filep->IOoffset = 0;
-		outbufoffset += nbytetoread;
-		nbytetoread = count - nbytetoread;
-	}
-
-	/* If our IObuf is either empty on start or has exhausted everything to be read into outbuf we read again
- 	* This also takes care of scenario of rebuffering when count + IOoffset was larger than buffer size and we still
- 	* need to read a little bit beyond the bounds of IObuf to the user's buffer	*/
-	if (filep->IOoffset == 0 && nbytetoread != 0) {
-		memset(filep->IObuf, '\0', filep->IOsiz);
-		if (read(filep->filedesc, filep->IObuf + filep->IOoffset, filep->IOsiz) < 0) {
-			exit(1);
-		}
-	}
-
-	/* If read 0, its fine as nbytetoread = 0 then. Will do any remaining reads left to do after the count + IOoffset > IOsiz case.
- 	* Also handles the scenario where user's call to read is not substantial enough to warrant a new syscall and just gets it from buffered
- 	* previous read syscall */
-	memcpy(outbuf + outbufoffset, filep->IObuf + filep->IOoffset, nbytetoread);
-	filep->IOoffset += nbytetoread;
-	return count;
-}
-
-//int myread(MYFILE* filep, char *userIObuffer, int count) {
+//int myread(MYFILE* filep, char* outbuf, int count) {
+//	int outbufoffset = 0;
+//	int nbytetoread = count;
+//	
+//	filep->fileoffset += count;
+//	
+//	/* Reset some flag when moving between reads and writes. */
+//	filep->waswrite = 0;	
 //
-//    /* CASE 1: Buffer is empty */
+//	/* We check that our flags are fine */
+//	if ((filep->flags & (O_RDWR|O_RDONLY)) != O_RDWR && (filep->flags & (O_RDWR|O_RDONLY)) != O_RDONLY) {
+//		exit(1);
+//	}
 //
-//    if (filep->IOoffset == 0) {
-//        
-//        /* Case 1a: User asks to read more bytes (or same amount) than the max. our IObuffer can handle, so we skip IObuffering 
-//	       and give them a read with however many bytes they want straight to their IObuffer */
-//        if(count >= BUFFER_SIZE) {
-//            /* read() returns negative for error; 0 for EOF (end-of-file) */
-//            if(read((filep -> filedesc), userIObuffer, count) < 0) {
-//                    perror("read");
-//                    return -1;
-//            }
-//            filep->IOoffset = 0; //making it explict for readibility's sake
-//            filep->wasread = 1;		
-//            return count; 
-//        }
-//
-//        /* Case 1b: User asks to read less bytes than the max. our IObuffer can handle (BUT more than 0), so we employ buffering */
-//        else if (count != 0) {
-//            if(read((filep -> filedesc), filep->IObuf, filep->IOsiz) < 0) {
-//                perror("read");
-//                return -1;	
-//            }	
-//        }
-//    }
-//
-//    /* CASE 2: Buffer is not empty */
-//
-//    /* bytes left in our buffer that have not been memcpy'd yet*/
-//	int IObufspace = BUFFER_SIZE - filep->IOoffset;
-//
-//	/* bytes we STILL need to give user after GIVING them what was left in our buffer */
-//	int remainder = count - (BUFFER_SIZE - filep->IOoffset);
-//
-//    /* Case 2a: User asks to read more bytes (or same amount) than the remaining bytes in our IObuffer */
-//    if (count > IObufspace) {
-//
-//        /* memcpy remaining bytes - what's left in OUR IObuffer that can help satisfy a portion of this myread() call -
-//		   this will prevent us from (?)leaving some bytes from THIS myread() call without being read & copied yet(?) */
-//		memcpy(userIObuffer, filep->IObuf + filep->IOoffset, (BUFFER_SIZE - filep->IOoffset));
-//
-//        /* Case 2a(i): After giving what's left in our buffer, disregard buffering and give user what they want b/cuz it's too much */
-//        if(remainder > BUFFER_SIZE) {
-//            if(read((filep -> filedesc), userIObuffer + (BUFFER_SIZE - filep->IOoffset), remainder) < 0) {
-//                perror("read");
-//                return -1;
-//            }		
-//			filep->wasread = 1;
-//			filep->IOoffset = 0;
-//			return count;
-//        }
-//
-//        /* Case 2a(ii): After giving what's left in our buffer, implement buffering again*/
-//        else {
-//            /* Overwrite OUR IObuffer and completely fill it with new data */
-//            if(read((filep -> filedesc), filep->IObuf, filep->IOsiz) < 0) {
-//                perror("read");
-//                return -1;	
-//            }	
-//            /* Copy the rest of the bytes necessary to fulfill THIS myread() call */
-//            memcpy(userIObuffer + (BUFFER_SIZE - filep->IOoffset), filep->IObuf, remainder);
-//
-//            /* Reset pointer that indicates our position in IObuffer to the REMAINDER (our position in our NEW resetted buffer)*/
-//            filep->IOoffset = remainder;
-//            filep->wasread = 1;
-//            return count;
-//        }        
-//    }
-//
-//    /* Case 2b: User attempts to read an amount of bytes that our IObuffer can handle with remaining space, i.e: Default Buffering */
-//    /* Copy relevant bytes and update pointer that indicates our position in buffer (IOoffset) */
-//	memcpy(userIObuffer, filep->IObuf + filep->IOoffset, count); 
-//	filep->IOoffset += count;
-//	/* If our buffer is filled, rest it*/
-//	if(filep->IOoffset == BUFFER_SIZE) {
+//	/* If user wants to read an obscene amount, let them: first extract rest from IObuf and then use syscall directly */
+//	if (count > filep->IOsiz) {
+//		nbytetoread = filep->IOsiz - filep->IOoffset;
+//		if (filep->IOoffset == 0) {
+//			nbytetoread = 0;
+//		}
+//		memcpy(outbuf + outbufoffset, filep->IObuf + filep->IOoffset, nbytetoread);
 //		filep->IOoffset = 0;
-//		return count;
-//	}	
-//	filep->wasread = 1;
+//		outbufoffset += nbytetoread;
+//		nbytetoread = count - nbytetoread;
+//
+//		/* Attempt a read with error handling directly on outbuf with no buffering (IObuf) */
+//		if (read(filep->filedesc, outbuf + outbufoffset, nbytetoread) < 0) {
+//			exit(1);
+//		}
+//		
+//		/* Update nbytetoread: nothing left to read for later as we used syscall directly */
+//		outbufoffset += nbytetoread;
+//		nbytetoread = 0;
+//	}
+//
+//	/* If count is not larger than IObuf, but factoring items already in IObuf, it is */
+//	else if (count + filep->IOoffset > filep->IOsiz) {
+//
+//		/* Lets first read the rest of buffered stuff in IObuf to the user's buffer and update some
+//		* buffer tracking variables: offset is now buffer size since we exhausted our buffer, nbytetoread
+//		* is the count factoring what we just read from the buffer */
+//		nbytetoread = filep->IOsiz - filep->IOoffset;
+//		memcpy(outbuf + outbufoffset, filep->IObuf + filep->IOoffset, nbytetoread);
+//		filep->IOoffset = 0;
+//		outbufoffset += nbytetoread;
+//		nbytetoread = count - nbytetoread;
+//	}
+//
+//	/* If our IObuf is either empty on start or has exhausted everything to be read into outbuf we read again
+//	* This also takes care of scenario of rebuffering when count + IOoffset was larger than buffer size and we still
+//	* need to read a little bit beyond the bounds of IObuf to the user's buffer	*/
+//	if (filep->IOoffset == 0 && nbytetoread != 0) {
+//		memset(filep->IObuf, '\0', filep->IOsiz);
+//		if (read(filep->filedesc, filep->IObuf + filep->IOoffset, filep->IOsiz) < 0) {
+//			exit(1);
+//		}
+//	}
+//
+//	/* If read 0, its fine as nbytetoread = 0 then. Will do any remaining reads left to do after the count + IOoffset > IOsiz case.
+//	* Also handles the scenario where user's call to read is not substantial enough to warrant a new syscall and just gets it from buffered
+//	* previous read syscall */
+//	memcpy(outbuf + outbufoffset, filep->IObuf + filep->IOoffset, nbytetoread);
+//	filep->IOoffset += nbytetoread;
 //	return count;
 //}
+
+int myread(MYFILE* filep, char *userIObuffer, int count) {
+
+		/* Initialize our variable that tracks where the file descriptor "should be"*/
+		filep->fileoffset += count;
+ 
+		/* Reset some flags when moving between reads and writes. */
+		filep->waswrite = 0;
+
+		/* Case 0: Trying to read 0 bytes */
+		if(count == 0) {
+				return 0;
+		}
+
+		/* CASE 1: Buffer is empty */
+		if (filep->IOoffset == 0) {
+
+		/* Case 1a: User asks to read more bytes (or same amount) than the max. our IObuffer can handle, so we skip IObuffering
+		and give them a read with however many bytes they want straight to their IObuffer */
+				if(count >= BUFFER_SIZE) {
+
+						/* read() returns negative for error; 0 for EOF (end-of-file) */
+						if(read((filep -> filedesc), userIObuffer, count) < 0) {
+							perror("read");
+						return -1;
+						}
+
+				filep->IOoffset = 0; //making it explict for readibility's sake
+				filep->wasread = 1;		 
+				return count;
+				}
+ 
+				/* Case 1b: Initial read: User asks to read less bytes than the max. our IObuffer can handle (BUT more than 0), so we employ buffering */
+				else if (count != 0) {
+						memset(filep->IObuf, '\0', filep->IOsiz);
+						if(read((filep -> filedesc), filep->IObuf, filep->IOsiz) < 0) {
+								perror("read");
+								return -1; 
+						}  
+				}
+		}
+
+		/* CASE 2: Buffer is not empty */
+		/* bytes left in our buffer that have not been memcpy'd yet*/
+		int IObufspace = BUFFER_SIZE - filep->IOoffset;
+ 
+		/* bytes we STILL need to give user after GIVING them what was left in our buffer */
+		int remainder = count - IObufspace;
+ 
+		/* Case 2a: User asks to read more bytes (or same amount) than the remaining bytes in our IObuffer */
+		if (count > IObufspace) {
+
+				/* memcpy remaining bytes - what's left in OUR IObuffer that can help satisfy a portion of this myread() call -
+					 this will prevent us from leaving some bytes in our buffer without being memcpy'd and keep filedesc "aligned" */
+				memcpy(userIObuffer, filep->IObuf + filep->IOoffset, IObufspace);
+
+			 /* Case 2a(i): After giving what's left in our buffer, disregard buffering and give user what they want b/cuz it's too much */
+			 if(remainder > BUFFER_SIZE) {
+					 if(read((filep -> filedesc), userIObuffer + IObufspace, remainder) < 0) {
+								perror("read");
+								return -1;
+				}			 
+						filep->wasread = 1;
+						filep->IOoffset = 0;
+						return count;
+			 }
+			 /* Case 2a(ii): After giving what's left in our buffer, re-implement buffering b/cuz the remainder is within bounds of our buffer */
+			 else {
+					 /* Overwrite OUR IObuffer and completely fill it with new data */
+						memset(filep->IObuf, '\0', filep->IOsiz);
+						if(read((filep -> filedesc), filep->IObuf, filep->IOsiz) < 0) {
+							 perror("read");
+							 return -1;  
+						}
+						/* Copy the rest of the bytes necessary to fulfill THIS myread() call */
+						memcpy(userIObuffer + IObufspace, filep->IObuf, remainder);
+ 
+						/* Reset pointer that indicates our position in IObuffer to the REMAINDER (our position in our NEW resetted buffer)*/
+						filep->IOoffset = remainder;
+						filep->wasread = 1;
+						return count;
+		}			 
+	 }
+
+	 /* Case 2b: User attempts to read an amount of bytes that our IObuffer can handle with remaining space, i.e: Default Buffering */
+	 /* Copy relevant bytes and update pointer that indicates our position in buffer (IOoffset) */
+		memcpy(userIObuffer, filep->IObuf + filep->IOoffset, count);
+		filep->IOoffset += count;
+
+		/* If our buffer is filled, reset it*/
+		if(filep->IOoffset == BUFFER_SIZE) {
+				filep->IOoffset = 0;
+				return count;
+		}  
+		filep->wasread = 1;
+		return count;
+}
 
 int mywrite(MYFILE* filep, const char *inbuf, int count) {
 	int nbytetomemcpy = count;
@@ -272,7 +285,7 @@ int myflush(MYFILE* filep) {
 	filep->wasread = 0;
 
 	/* We check that our flags are fine */
-	if ((filep->flags & (O_RDWR|O_WRONLY)) != O_RDWR && (filep->flags & (O_RDWR|O_WRONLY)) != O_WRONLY) { //TODO: CHECK CORRECTNESS
+	if ((filep->flags & (O_RDWR|O_WRONLY)) != O_RDWR && (filep->flags & (O_RDWR|O_WRONLY)) != O_WRONLY) {
 		filep->IOoffset = 0;
 		exit(1);
 	}

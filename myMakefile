@@ -1,2 +1,0 @@
-testmyio: testmyio.c myio.c
-	gcc $(CFLAGS) -o $@ $^
