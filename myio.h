@@ -14,10 +14,7 @@ typedef struct {
 	int IOoffset;
 	int waswrite;
 	int wasread;
-	//SOMETHING;
 } MYFILE;
-
-//_______________________________________________________________________________________
 
 /* Function prototype for myopen */
 MYFILE* myopen(const char* path, int flags);
@@ -31,9 +28,5 @@ int myread(MYFILE* filep, char *userbuffer, int count);
 int myflush(MYFILE *filep);
 
 int myseek(MYFILE *filep, int offset, int whence);
-
-
-
-
 
 #endif /* __MYIO_H*/
