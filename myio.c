@@ -63,6 +63,7 @@ int myread(MYFILE* filep, char* outbuf, int count) {
 	int nbytetoread = count;
 	int nbytewasread = 0;
 	
+	/* file offset updates for myseek */
 	filep->fileoffset += count;
 	
 	/* Reset some flag when moving between reads and writes. */
@@ -133,12 +134,9 @@ int myread(MYFILE* filep, char* outbuf, int count) {
 	if (nbytetoread > (filep->IOeobuf - filep->IOoffset)) {
 		nbytetoread = filep->IOeobuf - filep->IOoffset;
 	}
-
 	memcpy(outbuf + outbufoffset, filep->IObuf + filep->IOoffset, nbytetoread);
 	filep->IOoffset += nbytetoread;
-
 	nbytewasread += nbytetoread;
-
 	return nbytewasread;
 }
 
