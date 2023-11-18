@@ -95,7 +95,7 @@ int myread(MYFILE* filep, char* outbuf, int count) {
 			return -1;
 		}
 		
-		if (nbytewasread < count) {
+		if(nbytewasread < count) {
 			filep->IOeobuf = 0;
 		}
 
@@ -131,7 +131,7 @@ int myread(MYFILE* filep, char* outbuf, int count) {
 	* Also handles the scenario where user's call to read is not substantial enough to warrant a new syscall and just gets it from buffered
 	* previous read syscall */
 	/* If we are reaching the end of our buffer and user specified to read overboard */		
-	if (nbytetoread > (filep->IOeobuf - filep->IOoffset)) {
+	if(nbytetoread > (filep->IOeobuf - filep->IOoffset)) {
 		nbytetoread = filep->IOeobuf - filep->IOoffset;
 	}
 	memcpy(outbuf + outbufoffset, filep->IObuf + filep->IOoffset, nbytetoread);
