@@ -33,8 +33,8 @@ int main(int argc, char *argv[]) {
 	WRfile = myopen("writefile0.txt", O_CREAT | O_TRUNC | O_RDWR);
 
 	/* Read the first sentence and title from the declaration of independence */
-	DIcnt += myread(DIfile, DIbuf + DIcnt, 23);
-	DIcnt += myread(DIfile, DIbuf + DIcnt, 2);
+	DIcnt += myread(DIfile, DIbuf + DIcnt, 25);
+	DIcnt += myread(DIfile, DIbuf + DIcnt, 0);
 	DIcnt += myread(DIfile, DIbuf + DIcnt, 250);
 	DIcnt += myread(DIfile, DIbuf + DIcnt, 130);
 	DIcnt += myread(DIfile, DIbuf + DIcnt, 22);
@@ -77,7 +77,9 @@ int main(int argc, char *argv[]) {
 
 	/* good open */ //works//
 	MYFILE *f1 = myopen("jarjar.txt", O_RDWR);
-	perror("fopen");
+	//perror("fopen");
+
+	FILE* ffile = fopen("jarjar.txt", "r");
 
 	/* try to open the same file multiple times */	//works but... unsure if behavior down the line works as intended//
 	// MYFILE *myfileonce = myopen("jarjar.txt", O_RDWR);
@@ -88,27 +90,29 @@ int main(int argc, char *argv[]) {
 	/*!!! basic reading !!!*/
 	/* All test cases follow assumption that BUFFER_SIZE is 25 */
 
-	char buf[1000];
+	char bufx[1000];
 
 	/* actual: fread() */
 	/* Tests Desired Behavior & Return Values */
 	/* Test for many consecutive myread */
-	// printf("%ld",fread(buf,1,125,ffile));
-	// printf(buf, "\n\n");
-	// printf("%ld",fread(buf,1,5,ffile));
-	// printf(buf, "\n\n");
-	// printf("%ld",fread(buf,1,70,ffile));
-	// printf(buf, "\n\n");
-	// printf("%ld",fread(buf,1,0,ffile));
-	// printf(buf, "\n\n");
-	// printf("%ld",fread(buf,1,11,ffile));
-	// printf(buf, "\n\n");
-	// printf("%ld",fread(buf,1,27,ffile));
-	// printf(buf, "\n\n");
-	// printf("%ld",fread(buf,1,1,ffile));
-	// printf(buf, "\n\n");
-	// printf("%ld",fread(buf,1,1,ffile));
-	// printf(buf, "\n\n");
+	 printf("%ld\n",fread(bufx,1,125,ffile));
+	 printf(bufx, "\n\n");
+	 printf("%ld\n",fread(bufx,1,5,ffile));
+	 printf(bufx, "\n\n");
+	 printf("%ld\n",fread(bufx,1,70,ffile));
+	 printf(bufx, "\n\n");
+	 printf("%ld\n",fread(bufx,1,0,ffile));
+	 printf(bufx, "\n\n");
+	 printf("%ld\n",fread(bufx,1,11,ffile));
+	 printf(bufx, "\n\n");
+	 printf("%ld\n",fread(bufx,1,27,ffile));
+	 printf(bufx, "\n\n");
+	 printf("%ld\n",fread(bufx,1,1,ffile));
+	 printf(bufx, "\n\n");
+	 printf("%ld\n",fread(bufx,1,1,ffile));
+	 printf(bufx, "\n\n");
+	 printf("%ld\n",fread(bufx,1,150,ffile));
+
 
 	/* Edge Cases */
 	//TODO: stuff in buffer and try to read nothing-ness (NOT 0, but rather emptyness) and re-implement buffer (Case 2a(ii))
@@ -130,22 +134,24 @@ int main(int argc, char *argv[]) {
 	/* Testing following cases: Case 0, Case 1a, Case 1b, Case 2a(i), Case 2a(ii), Case 2b as these are the "functional" cases */
 	/* Tests Desired Behavior & Return Values */
 	/* Test for many consecutive myread */
-	printf("%d",myread((f1), buf, 125)); /* Case 1a */ //works//
-	printf(buf, "\n\n");
-	printf("%d",myread((f1), buf, 5)); //Case 1b //works//
-	printf(buf, "\n\n");
-	printf("%d",myread((f1), buf, 70)); //Case 2a(i) //after this the buffer will be "empty" //works//
-	printf(buf, "\n\n");
-	printf("%d",myread((f1), buf, 0)); //Case 0 //works//
-	printf(buf, "\n\n");
-	printf("%d",myread((f1), buf, 11)); //Case 1b //works//
-	printf(buf, "\n\n");
-	printf("%d",myread((f1), buf, 27)); //Case 2a(ii) //works//
-	printf(buf, "\n\n");
-	printf("%d",myread((f1), buf, 1)); //Case 2b //works//
-	printf(buf, "\n\n");
-	printf("%d",myread((f1), buf, 1)); //Case 2b //works//
-	printf(buf, "\n\n");
+	char bufy[10000];
+	printf("%d\n",myread((f1), bufy, 125)); /* Case 1a */ //works//
+	printf(bufy, "\n\n");
+	printf("%d\n",myread((f1), bufy, 5)); //Case 1b //works//
+	printf(bufy, "\n\n");
+	printf("%d\n",myread((f1), bufy, 70)); //Case 2a(i) //after this the buffer will be "empty" //works//
+	printf(bufy, "\n\n");
+	printf("%d\n",myread((f1), bufy, 0)); //Case 0 //works//
+	printf(bufy, "\n\n");
+	printf("%d\n",myread((f1), bufy, 11)); //Case 1b //works//
+	printf(bufy, "\n\n");
+	printf("%d\n",myread((f1), bufy, 27)); //Case 2a(ii) //works//
+	printf(bufy, "\n\n");
+	printf("%d\n",myread((f1), bufy, 1)); //Case 2b //works//
+	printf(bufy, "\n\n");
+	printf("%d\n",myread((f1), bufy, 1)); //Case 2b //works//
+	printf(bufy, "\n\n");
+	printf("%d\n",myread((f1), bufy, 150));
 
 	/* Edge Cases */
 	//TODO: stuff in buffer and try to read nothing-ness (NOT 0, but rather emptyness) and re-implement buffer (Case 2a(ii))
@@ -184,53 +190,53 @@ int main(int argc, char *argv[]) {
 		/* Case 2b: User attempts to write an amount of bytes that our IObuffer can handle with remaining space */
 
 	/* Test for many consecutive mywrite */
-	MYFILE *writefile0;
-	writefile0 = myopen("write0.txt", O_CREAT | O_TRUNC | O_RDWR);
-	mywrite(writefile0, "I yearned to be a savior against injustice without contemplating the cost...", 76); /* Case 1a */
-	mywrite(writefile0, "May the Fourth", 14); /* Case 1b */
-	mywrite(writefile0, "I yearned to be a savior against the world", 42); /* Case 2a(i) */ // buffer will be "empty" b/cuz flush "resets" it
-	mywrite(writefile0, "", 0); /* Case 0 */ //causes off by one!!!
+	//MYFILE *writefile0;
+	//writefile0 = myopen("write0.txt", O_CREAT | O_TRUNC | O_RDWR);
+	//mywrite(writefile0, "I yearned to be a savior against injustice without contemplating the cost...", 76); /* Case 1a */
+	//mywrite(writefile0, "May the Fourth", 14); /* Case 1b */
+	//mywrite(writefile0, "I yearned to be a savior against the world", 42); /* Case 2a(i) */ // buffer will be "empty" b/cuz flush "resets" it
+	//mywrite(writefile0, "", 0); /* Case 0 */ //causes off by one!!!
 
-	/*ONLY running from here down is also a problem!!!*/
-	mywrite(writefile0, "I am YOUR FATHER!", 17); /* Case 1b */
-	mywrite(writefile0, "This isss 19 bytes?", 19); /* Case 2a(ii) */
-	mywrite(writefile0, "lil kid", 7); /* Case 2b */
-	mywrite(writefile0, "ahh", 3); /* Case 2b */
-	myflush(writefile0);
-	myclose(writefile0);
+	///*ONLY running from here down is also a problem!!!*/
+	//mywrite(writefile0, "I am YOUR FATHER!", 17); /* Case 1b */
+	//mywrite(writefile0, "This isss 19 bytes?", 19); /* Case 2a(ii) */
+	//mywrite(writefile0, "lil kid", 7); /* Case 2b */
+	//mywrite(writefile0, "ahh", 3); /* Case 2b */
+	//myflush(writefile0);
+	//myclose(writefile0);
 
-	/* Edge Cases */
-	mywrite(writefile0, "this is just wrong", 27); /* count > len(input) */ //works
-	perror("fwrite");
-	mywrite(writefile0, "right?", 2); /* count < len(input) */ //works
-	myflush(writefile0);
+	///* Edge Cases */
+	////mywrite(writefile0, "this is just wrong", 27); /* count > len(input) */ //works
+	////perror("fwrite");
+	////mywrite(writefile0, "right?", 2); /* count < len(input) */ //works
+	////myflush(writefile0);
 
-	/*!!! basic seeking !!!*/
+	///*!!! basic seeking !!!*/
 
-	/* actual: fseek() */
-	// fwrite("chant",1,5,ffile);
-	// fseek(ffile, 5, SEEK_CUR);
-	// fread(buf, 5,1,ffile);
-	// printf(buf, "\n\n");
-	// fseek(ffile, 50, SEEK_SET);
-	// fseek(ffile, -10, SEEK_CUR);
-	// fread(buf, 5,1,ffile);
-	// fseek(ffile, 10, SEEK_CUR);
-	// fwrite("chant",1,5,ffile);
-	// printf(buf, "\n\n");
+	///* actual: fseek() */
+	//// fwrite("chant",1,5,ffile);
+	//// fseek(ffile, 5, SEEK_CUR);
+	//// fread(buf, 5,1,ffile);
+	//// printf(buf, "\n\n");
+	//// fseek(ffile, 50, SEEK_SET);
+	//// fseek(ffile, -10, SEEK_CUR);
+	//// fread(buf, 5,1,ffile);
+	//// fseek(ffile, 10, SEEK_CUR);
+	//// fwrite("chant",1,5,ffile);
+	//// printf(buf, "\n\n");
 
-	/* ours: myseek() */ //works//
-	mywrite(f1,"chant", 5);
-	myseek(f1, 5, SEEK_CUR);
-	myread(f1, buf, 5);
-	printf(buf, "\n\n");
-	myseek(f1, 50, SEEK_SET);
-	myseek(f1, -10, SEEK_CUR);
-	myread(f1, buf, 5);
-	myseek(f1, 10, SEEK_CUR);
-	mywrite(f1,"chant", 5);
-	myflush(f1);
-	printf(buf, "\n\n");
+	///* ours: myseek() */ //works//
+	//mywrite(f1,"chant", 5);
+	//myseek(f1, 5, SEEK_CUR);
+	//myread(f1, buf, 5);
+	////printf(buf, "\n\n");
+	//myseek(f1, 50, SEEK_SET);
+	//myseek(f1, -10, SEEK_CUR);
+	//myread(f1, buf, 5);
+	//myseek(f1, 10, SEEK_CUR);
+	//mywrite(f1,"chant", 5);
+	//myflush(f1);
+	////printf(buf, "\n\n");
 
 	//TODO: myseek() edge cases like seeking to before file begins or past EOF, and bad flags
 	/*!!! basic closing !!!*/

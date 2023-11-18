@@ -9,7 +9,7 @@
 #include <math.h>
 #include "myio.h"
 
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 25
 
 /* This function attempts to malloc space for character IObuffer otherewise handles error */
 void* trymalloc(int size) {
@@ -52,6 +52,7 @@ MYFILE *myopen(const char* path, int flags) {
 	filep->IOsiz = BUFFER_SIZE;
 	filep->IOoffset = 0;
 	filep->fileoffset = 0;
+	filep->IOeobuf = BUFFER_SIZE;
 	filep->wasread = 0;
 	filep->waswrite = 0;
 	return filep;
@@ -65,11 +66,10 @@ int myread(MYFILE* filep, char* outbuf, int count) {
 	filep->fileoffset += count;
 	
 	/* Reset some flag when moving between reads and writes. */
-	filep->waswrite = 1;
+	filep->wasread = 1;
 	if(filep->waswrite == 1) {
 		myflush(filep);
-		//filep->waswrite = 0;
-		filep->wasread = 1; //TODO: TESTING
+		filep->waswrite = 0;
 	}	
 
 	/* We check that our flags are fine */
@@ -79,24 +79,28 @@ int myread(MYFILE* filep, char* outbuf, int count) {
 
 	/* If user wants to read an obscene amount, let them: first extract rest from IObuf and then use syscall directly */
 	if(count > filep->IOsiz) {
-		nbytetoread = filep->IOsiz - filep->IOoffset;
-		if(filep->IOoffset == 0 /*&& filep->wasread == 1*/) {
+		nbytetoread = filep->IOeobuf - filep->IOoffset; 
+		if(filep->IOoffset == 0) {
 			nbytetoread = 0;
 		}
+		nbytewasread = nbytetoread;
 		memcpy(outbuf + outbufoffset, filep->IObuf + filep->IOoffset, nbytetoread);
 		filep->IOoffset = 0;
 		outbufoffset += nbytetoread;
 		nbytetoread = count - nbytetoread;
 
 		/* Attempt a read with error handling directly on outbuf with no buffering (IObuf) */
-		if((nbytewasread = (int)read(filep->filedesc, outbuf + outbufoffset, nbytetoread)) < 0) {
+		if((nbytewasread += (int)read(filep->filedesc, outbuf + outbufoffset, nbytetoread)) < 0) {
 			return -1;
 		}
 		
+		if (nbytewasread < count) {
+			filep->IOeobuf = 0;
+		}
+
 		/* Update nbytetoread: nothing left to read for later as we used syscall directly */
 		outbufoffset += nbytetoread;
 		nbytetoread = 0;
-		/*filep->wasread = 1;*/
 	}
 
 	/* If count is not larger than IObuf, but factoring items already in IObuf, it is */
@@ -105,34 +109,36 @@ int myread(MYFILE* filep, char* outbuf, int count) {
 		/* Lets first read the rest of buffered stuff in IObuf to the user's buffer and update some
 		* buffer tracking variables: offset is now buffer size since we exhausted our buffer, nbytetoread
 		* is the count factoring what we just read from the buffer */
-		nbytetoread = filep->IOsiz - filep->IOoffset;
+		nbytetoread = filep->IOeobuf - filep->IOoffset; 
+		nbytewasread = nbytetoread;
 		memcpy(outbuf + outbufoffset, filep->IObuf + filep->IOoffset, nbytetoread);
 		filep->IOoffset = 0;
 		outbufoffset += nbytetoread;
 		nbytetoread = count - nbytetoread;
-		/*filep->wasread = 1;*/
 	}
-	//printf("%d\n", filep->wasread);
+
 	/* If our IObuf is either empty on start or has exhausted everything to be read into outbuf we read again
 	* This also takes care of scenario of rebuffering when count + IOoffset was larger than buffer size and we still
 	* need to read a little bit beyond the bounds of IObuf to the user's buffer	*/
-	if(filep->IOoffset == 0 && nbytetoread != 0/*&& filep->wasread == 1*/) {
-		if((nbytewasread = (int)read(filep->filedesc, filep->IObuf + filep->IOoffset, filep->IOsiz)) < 0) {
+	if(filep->IOoffset == 0 && nbytetoread != 0) {
+		if((filep->IOeobuf = (int)read(filep->filedesc, filep->IObuf + filep->IOoffset, filep->IOsiz)) < 0) {
 			return -1;
 		}
-		//filep->wasread = 0;
-		//printf("%d\n", filep->wasread);
 	}
 
 	/* If read 0, its fine as nbytetoread = 0 then. Will do any remaining reads left to do after the count + IOoffset > IOsiz case.
 	* Also handles the scenario where user's call to read is not substantial enough to warrant a new syscall and just gets it from buffered
 	* previous read syscall */
+	/* If we are reaching the end of our buffer and user specified to read overboard */		
+	if (nbytetoread > (filep->IOeobuf - filep->IOoffset)) {
+		nbytetoread = filep->IOeobuf - filep->IOoffset;
+	}
+
 	memcpy(outbuf + outbufoffset, filep->IObuf + filep->IOoffset, nbytetoread);
 	filep->IOoffset += nbytetoread;
 
-	if(nbytewasread > count) {
-		nbytewasread = count;
-	}
+	nbytewasread += nbytetoread;
+
 	return nbytewasread;
 }
 
@@ -143,8 +149,6 @@ int mywrite(MYFILE* filep, const char *inbuf, int count) {
 	/* This handles logic for when I decide to move from read to write */
 	filep->waswrite = 1;
 	if(filep->wasread == 1) {
-		//filep->waswrite = 1;
-		filep->IOoffset = 0; //TEST
 		filep->wasread = 0;
 	}
 

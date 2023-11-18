@@ -12,6 +12,7 @@ typedef struct {
 	int IOsiz;
 	int fileoffset;
 	int IOoffset;
+	int IOeobuf;
 	int waswrite;
 	int wasread;
 } MYFILE;
