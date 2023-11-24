@@ -15,71 +15,71 @@ int main(int argc, char *argv[]) {
 	* Palpatine's announcment of the formation of the Galactic Empire. To see the actual result, take a look at
 	* the file "writefile0.txt" after compiling and running. */
 
-	/* DIfile and other DI-stuff are for our file containing the Declaration of Independence */
-	int DIcnt = 0;
-	char DIbuf[50000];
-	MYFILE* DIfile;
-	DIfile = myopen("readfile0.txt", O_RDONLY);
+	// /* DIfile and other DI-stuff are for our file containing the Declaration of Independence */
+	// int DIcnt = 0;
+	// char DIbuf[50000];
+	// MYFILE* DIfile;
+	// DIfile = myopen("readfile0.txt", O_RDONLY);
 
-	/* SWfile and associated SW-stuff are for our file containing Palpatine's proclamation of the Galactic Empire */
-	int SWcnt = 0;
-	char SWbuf[50000];
-	MYFILE* SWfile;
-	SWfile = myopen("readfile1.txt", O_RDONLY);
+	// /* SWfile and associated SW-stuff are for our file containing Palpatine's proclamation of the Galactic Empire */
+	// int SWcnt = 0;
+	// char SWbuf[50000];
+	// MYFILE* SWfile;
+	// SWfile = myopen("readfile1.txt", O_RDONLY);
 
-	/* Open up the file we plan to mostly write to but will read a bit */
-	int WRcnt = 0;
-	MYFILE* WRfile;
-	WRfile = myopen("writefile0.txt", O_CREAT | O_TRUNC | O_RDWR);
+	// /* Open up the file we plan to mostly write to but will read a bit */
+	// int WRcnt = 0;
+	// MYFILE* WRfile;
+	// WRfile = myopen("writefile0.txt", O_CREAT | O_TRUNC | O_RDWR);
 
-	/* Read the first sentence and title from the declaration of independence */
-	DIcnt += myread(DIfile, DIbuf + DIcnt, 25);
-	DIcnt += myread(DIfile, DIbuf + DIcnt, 0);
-	DIcnt += myread(DIfile, DIbuf + DIcnt, 250);
-	DIcnt += myread(DIfile, DIbuf + DIcnt, 130);
-	DIcnt += myread(DIfile, DIbuf + DIcnt, 22);
-	DIcnt += myread(DIfile, DIbuf + DIcnt, 76);
+	// /* Read the first sentence and title from the declaration of independence */
+	// DIcnt += myread(DIfile, DIbuf + DIcnt, 25);
+	// DIcnt += myread(DIfile, DIbuf + DIcnt, 0);
+	// DIcnt += myread(DIfile, DIbuf + DIcnt, 250);
+	// DIcnt += myread(DIfile, DIbuf + DIcnt, 130);
+	// DIcnt += myread(DIfile, DIbuf + DIcnt, 22);
+	// DIcnt += myread(DIfile, DIbuf + DIcnt, 76);
 
-	/* We write the first part	of what was read to the DIfile */
-	WRcnt += mywrite(WRfile, DIbuf + WRcnt, DIcnt - 34);
-	WRcnt += mywrite(WRfile, DIbuf + WRcnt, 2);
-	WRcnt += mywrite(WRfile, DIbuf + WRcnt, 32);
-	DIcnt = 0;
+	// /* We write the first part	of what was read to the DIfile */
+	// WRcnt += mywrite(WRfile, DIbuf + WRcnt, DIcnt - 34);
+	// WRcnt += mywrite(WRfile, DIbuf + WRcnt, 2);
+	// WRcnt += mywrite(WRfile, DIbuf + WRcnt, 32);
+	// DIcnt = 0;
 
-	/* We read the first part of the emperor's speech */
-	SWcnt += myread(SWfile, SWbuf + SWcnt, 0);
-	SWcnt += myread(SWfile, SWbuf + SWcnt, 188);
-	SWcnt += myread(SWfile, SWbuf + SWcnt, 12);
-	SWcnt += myread(SWfile, SWbuf + SWcnt, 12);
-	SWcnt += myread(SWfile, SWbuf + SWcnt, 150);
+	// /* We read the first part of the emperor's speech */
+	// SWcnt += myread(SWfile, SWbuf + SWcnt, 0);
+	// SWcnt += myread(SWfile, SWbuf + SWcnt, 188);
+	// SWcnt += myread(SWfile, SWbuf + SWcnt, 12);
+	// SWcnt += myread(SWfile, SWbuf + SWcnt, 12);
+	// SWcnt += myread(SWfile, SWbuf + SWcnt, 150);
 	
-	/* We write Palpatine's speech to file and skip to another interesting paragraph to read */
-	mywrite(WRfile, SWbuf, SWcnt);
+	// /* We write Palpatine's speech to file and skip to another interesting paragraph to read */
+	// mywrite(WRfile, SWbuf, SWcnt);
 	
-	myseek(SWfile, 1463, SEEK_CUR);
-	SWcnt += myread(SWfile, SWbuf + SWcnt, 357);
+	// myseek(SWfile, 1463, SEEK_CUR);
+	// SWcnt += myread(SWfile, SWbuf + SWcnt, 357);
 
-	/* Write the new contents of what we just seeked and read */	
-	mywrite(WRfile, SWbuf, SWcnt);
-	SWcnt = 0;
+	// /* Write the new contents of what we just seeked and read */	
+	// mywrite(WRfile, SWbuf, SWcnt);
+	// SWcnt = 0;
 
-	/* Now fetch more of the Decl. of Ind. by using Myseek with Seek_set */
-	myseek(DIfile, DIcnt + 842, SEEK_SET);
-	DIcnt += myread(DIfile, DIbuf + DIcnt, 4000);
-	mywrite(WRfile, DIbuf, 627); 
+	// /* Now fetch more of the Decl. of Ind. by using Myseek with Seek_set */
+	// myseek(DIfile, DIcnt + 842, SEEK_SET);
+	// DIcnt += myread(DIfile, DIbuf + DIcnt, 4000);
+	// mywrite(WRfile, DIbuf, 627); 
 
-	/* Close our files */
-	myclose(WRfile);
-	myclose(DIfile);
-	myclose(SWfile);
+	// /* Close our files */
+	// myclose(WRfile);
+	// myclose(DIfile);
+	// myclose(SWfile);
 
 	/* END OF THE DECLARATION OF INDEPENDENCE TEST */
 
 	/* good open */ //works//
-	MYFILE *f1 = myopen("jarjar.txt", O_RDWR);
+	MYFILE *f1 = myopen("./testfiles/jarjar.txt", O_RDWR);
 	//perror("fopen");
 
-	FILE* ffile = fopen("jarjar.txt", "r");
+	FILE* ffile = fopen("./testfiles/jarjar.txt", "r+");
 
 	/* try to open the same file multiple times */	//works but... unsure if behavior down the line works as intended//
 	// MYFILE *myfileonce = myopen("jarjar.txt", O_RDWR);
@@ -90,28 +90,28 @@ int main(int argc, char *argv[]) {
 	/*!!! basic reading !!!*/
 	/* All test cases follow assumption that BUFFER_SIZE is 25 */
 
-	char bufx[1000];
+	// char bufx[1000];
 
 	/* actual: fread() */
 	/* Tests Desired Behavior & Return Values */
 	/* Test for many consecutive myread */
-	 printf("%ld\n",fread(bufx,1,125,ffile));
-	 printf(bufx, "\n\n");
-	 printf("%ld\n",fread(bufx,1,5,ffile));
-	 printf(bufx, "\n\n");
-	 printf("%ld\n",fread(bufx,1,70,ffile));
-	 printf(bufx, "\n\n");
-	 printf("%ld\n",fread(bufx,1,0,ffile));
-	 printf(bufx, "\n\n");
-	 printf("%ld\n",fread(bufx,1,11,ffile));
-	 printf(bufx, "\n\n");
-	 printf("%ld\n",fread(bufx,1,27,ffile));
-	 printf(bufx, "\n\n");
-	 printf("%ld\n",fread(bufx,1,1,ffile));
-	 printf(bufx, "\n\n");
-	 printf("%ld\n",fread(bufx,1,1,ffile));
-	 printf(bufx, "\n\n");
-	 printf("%ld\n",fread(bufx,1,150,ffile));
+	//  printf("%ld\n",fread(bufx,1,125,ffile));
+	//  printf(bufx, "\n\n");
+	//  printf("%ld\n",fread(bufx,1,5,ffile));
+	//  printf(bufx, "\n\n");
+	//  printf("%ld\n",fread(bufx,1,70,ffile));
+	//  printf(bufx, "\n\n");
+	//  printf("%ld\n",fread(bufx,1,0,ffile));
+	//  printf(bufx, "\n\n");
+	//  printf("%ld\n",fread(bufx,1,11,ffile));
+	//  printf(bufx, "\n\n");
+	//  printf("%ld\n",fread(bufx,1,27,ffile));
+	//  printf(bufx, "\n\n");
+	//  printf("%ld\n",fread(bufx,1,1,ffile));
+	//  printf(bufx, "\n\n");
+	//  printf("%ld\n",fread(bufx,1,1,ffile));
+	//  printf(bufx, "\n\n");
+	//  printf("%ld\n",fread(bufx,1,150,ffile));
 
 
 	/* Edge Cases */
@@ -134,24 +134,24 @@ int main(int argc, char *argv[]) {
 	/* Testing following cases: Case 0, Case 1a, Case 1b, Case 2a(i), Case 2a(ii), Case 2b as these are the "functional" cases */
 	/* Tests Desired Behavior & Return Values */
 	/* Test for many consecutive myread */
-	char bufy[10000];
-	printf("%d\n",myread((f1), bufy, 125)); /* Case 1a */ //works//
-	printf(bufy, "\n\n");
-	printf("%d\n",myread((f1), bufy, 5)); //Case 1b //works//
-	printf(bufy, "\n\n");
-	printf("%d\n",myread((f1), bufy, 70)); //Case 2a(i) //after this the buffer will be "empty" //works//
-	printf(bufy, "\n\n");
-	printf("%d\n",myread((f1), bufy, 0)); //Case 0 //works//
-	printf(bufy, "\n\n");
-	printf("%d\n",myread((f1), bufy, 11)); //Case 1b //works//
-	printf(bufy, "\n\n");
-	printf("%d\n",myread((f1), bufy, 27)); //Case 2a(ii) //works//
-	printf(bufy, "\n\n");
-	printf("%d\n",myread((f1), bufy, 1)); //Case 2b //works//
-	printf(bufy, "\n\n");
-	printf("%d\n",myread((f1), bufy, 1)); //Case 2b //works//
-	printf(bufy, "\n\n");
-	printf("%d\n",myread((f1), bufy, 150));
+	// char bufy[10000];
+	// printf("%d\n",myread((f1), bufy, 125)); /* Case 1a */ //works//
+	// printf(bufy, "\n\n");
+	// printf("%d\n",myread((f1), bufy, 5)); //Case 1b //works//
+	// printf(bufy, "\n\n");
+	// printf("%d\n",myread((f1), bufy, 70)); //Case 2a(i) //after this the buffer will be "empty" //works//
+	// printf(bufy, "\n\n");
+	// printf("%d\n",myread((f1), bufy, 0)); //Case 0 //works//
+	// printf(bufy, "\n\n");
+	// printf("%d\n",myread((f1), bufy, 11)); //Case 1b //works//
+	// printf(bufy, "\n\n");
+	// printf("%d\n",myread((f1), bufy, 27)); //Case 2a(ii) //works//
+	// printf(bufy, "\n\n");
+	// printf("%d\n",myread((f1), bufy, 1)); //Case 2b //works//
+	// printf(bufy, "\n\n");
+	// printf("%d\n",myread((f1), bufy, 1)); //Case 2b //works//
+	// printf(bufy, "\n\n");
+	// printf("%d\n",myread((f1), bufy, 150));
 
 	/* Edge Cases */
 	//TODO: stuff in buffer and try to read nothing-ness (NOT 0, but rather emptyness) and re-implement buffer (Case 2a(ii))
@@ -239,11 +239,35 @@ int main(int argc, char *argv[]) {
 	////printf(buf, "\n\n");
 
 	//TODO: myseek() edge cases like seeking to before file begins or past EOF, and bad flags
+
+	/*!!! intermingling read/write !!!*/
+
+	/*OURS*/
+	char bufig[1000];
+
+	// myread((f1), bufig, 125); 
+	// mywrite(f1, "I am YOUR FATHER!", 17);
+	// myread((f1), bufig, 2);
+	// myread((f1), bufig, 0);
+	// mywrite(f1, "This isss 19 bytes?", 19);
+
+
+	/*ACTUAL*/
+	fread(bufig,1,125,ffile);
+	fwrite("I am YOUR FATHER!", 1, 17, ffile);
+	fread(bufig,1,2,ffile);
+	fread(bufig,1,0,ffile);
+	fwrite("This isss 19 bytes?", 1, 19, ffile);
+
+
+
+
+
+
 	/*!!! basic closing !!!*/
 	/* actual: fclose() */
-	//fclose(ffile);
+	fclose(ffile);
 
 	/* our: myclose() */
 	myclose(f1);
 }
-
