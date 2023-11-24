@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
     //printf("Worked?\n");
     
     
-    myopen("jarjar.txt", O_RDWR);
+    myopen("./testfiles/jarjar.txt", O_RDWR);
     FILE *ffile = fopen("jarjar.txt", "r");
     MYFILE *f1 = myopen("jarjar.txt", O_RDWR);
     // //int fd1 = open("hello.txt", O_RDWR);
