@@ -11,23 +11,19 @@
 
 #define BUFFER_SIZE 25
 
-/* This function attempts to malloc space for character IObuffer otherewise handles error */
-void* trymalloc(int size) {
-	char* bufp = malloc(size);
-	if(bufp == NULL) {
-		free(bufp);
-		return NULL;
-	}
-	return bufp;
-}
-
 /* myopen returns a new MYFILE struct for later use with other functions */
 /* See: https://man7.org/linux/man-pages/man2/open.2.html#ERRORS
  * See: *https://man7.org/linux/man-pages/man3/fopen.3.html */
 MYFILE *myopen(const char* path, int flags) {
 	int filedesc;
-	char* fileIObuf = (char *)trymalloc(BUFFER_SIZE);
-	MYFILE *filep = (MYFILE *)trymalloc(sizeof(MYFILE));
+	char* fileIObuf = (char *)malloc(BUFFER_SIZE);
+	if(fileIObuf == NULL) {
+		return NULL;
+	}
+	MYFILE *filep = (MYFILE *)malloc(sizeof(MYFILE));
+	if(filep == NULL) {
+		return NULL;
+	}
 	
 	/* If our flags contains O_CREAT or O_TRUNC or both we may assume mode 0666 
 	 * else we try to open with O_RDWR xor O_RDONLY xor O_WRONLY without assumed mode. */
@@ -36,11 +32,15 @@ MYFILE *myopen(const char* path, int flags) {
 		(flags & (O_CREAT|O_TRUNC)) == O_TRUNC) {
 		filedesc = open(path, flags, 0666);
 		if(filedesc == -1) {
+			free(filep->IObuf);
+			free(filep);
 			return NULL;
 		}
 	} else {
 		filedesc = open(path, flags);
 		if(filedesc == -1) {
+			free(filep->IObuf);
+			free(filep);
 			return NULL;
 		}
 	}
@@ -248,10 +248,12 @@ int myclose(MYFILE* filep) {
 	/* If the last thing specified was a write, just flush */
 	if(filep->waswrite == 1) {
 		myflush(filep);
-	}	
+	}
 
 	/* Actually do the close */
-	if(close(filep->filedesc) < 0) {
+	if (close(filep->filedesc) < 0) {
+		free(filep->IObuf);
+		free(filep);
 		return -1;
 	}
 
