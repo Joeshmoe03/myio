@@ -9,7 +9,7 @@
 #include <math.h>
 #include "myio.h"
 
-#define BUFFER_SIZE 25
+#define BUFFER_SIZE 4096
 
 /* myopen returns a new MYFILE struct for later use with other functions */
 /* See: https://man7.org/linux/man-pages/man2/open.2.html#ERRORS
@@ -105,7 +105,7 @@ int myread(MYFILE* filep, char* outbuf, int count) {
 	/* If count is not larger than IObuf, but factoring items already in IObuf, it is */
 	else if(count + filep->IOoffset > filep->IOsiz) {
 
-		/* Lets first read the rest of buffered stuff in IObuf to the user's buffer and update some
+		/* Lets first read rest of buffered stuff in IObuf to the user's buffer and update some
 		* buffer tracking variables: offset is now buffer size since we exhausted our buffer, nbytetoread
 		* is the count factoring what we just read from the buffer */
 		nbytetoread = filep->IOeobuf - filep->IOoffset; 
