@@ -13,65 +13,67 @@ int main(int argc, char *argv[]) {
 	
 	/* This silly little program rewrites parts of the Declaration of Independence with certain passages from
 	* Palpatine's announcment of the formation of the Galactic Empire. To see the actual result, take a look at
-	* the file "writefile0.txt" after compiling and running. */
+	* the file "writefile0.txt" after compiling and running. 
+	* IMPORTANT! TO CHECK CORRECTNESS:
+	* 	$ vi writefile0.txt */
 
-	// /* DIfile and other DI-stuff are for our file containing the Declaration of Independence */
-	// int DIcnt = 0;
-	// char DIbuf[50000];
-	// MYFILE* DIfile;
-	// DIfile = myopen("readfile0.txt", O_RDONLY);
+	 /* DIfile and other DI-stuff are for our file containing the Declaration of Independence */
+	 int DIcnt = 0;
+	 char DIbuf[50000];
+	 MYFILE* DIfile;
+	 DIfile = myopen("./testfiles/readfile0.txt", O_RDONLY);
 
-	// /* SWfile and associated SW-stuff are for our file containing Palpatine's proclamation of the Galactic Empire */
-	// int SWcnt = 0;
-	// char SWbuf[50000];
-	// MYFILE* SWfile;
-	// SWfile = myopen("readfile1.txt", O_RDONLY);
+	 /* SWfile and associated SW-stuff are for our file containing Palpatine's proclamation of the Galactic Empire */
+	 int SWcnt = 0;
+	 char SWbuf[50000];
+	 MYFILE* SWfile;
+	 SWfile = myopen("./testfiles/readfile1.txt", O_RDONLY);
 
-	// /* Open up the file we plan to mostly write to but will read a bit */
-	// int WRcnt = 0;
-	// MYFILE* WRfile;
-	// WRfile = myopen("writefile0.txt", O_CREAT | O_TRUNC | O_RDWR);
+	 /* Open up the file we plan to mostly write to but will read a bit */
+	 int WRcnt = 0;
+	 MYFILE* WRfile;
+	 WRfile = myopen("writefile0.txt", O_CREAT | O_TRUNC | O_RDWR);
 
-	// /* Read the first sentence and title from the declaration of independence */
-	// DIcnt += myread(DIfile, DIbuf + DIcnt, 25);
-	// DIcnt += myread(DIfile, DIbuf + DIcnt, 0);
-	// DIcnt += myread(DIfile, DIbuf + DIcnt, 250);
-	// DIcnt += myread(DIfile, DIbuf + DIcnt, 130);
-	// DIcnt += myread(DIfile, DIbuf + DIcnt, 22);
-	// DIcnt += myread(DIfile, DIbuf + DIcnt, 76);
+	 /* Read the first sentence and title from the declaration of independence */
+	 DIcnt += myread(DIfile, DIbuf + DIcnt, 25);
+	 DIcnt += myread(DIfile, DIbuf + DIcnt, 0);
+	 DIcnt += myread(DIfile, DIbuf + DIcnt, 250);
+	 DIcnt += myread(DIfile, DIbuf + DIcnt, 130);
+	 DIcnt += myread(DIfile, DIbuf + DIcnt, 22);
+	 DIcnt += myread(DIfile, DIbuf + DIcnt, 76);
 
-	// /* We write the first part	of what was read to the DIfile */
-	// WRcnt += mywrite(WRfile, DIbuf + WRcnt, DIcnt - 34);
-	// WRcnt += mywrite(WRfile, DIbuf + WRcnt, 2);
-	// WRcnt += mywrite(WRfile, DIbuf + WRcnt, 32);
-	// DIcnt = 0;
+	 /* We write the first part	of what was read to the DIfile */
+	 WRcnt += mywrite(WRfile, DIbuf + WRcnt, DIcnt - 34);
+	 WRcnt += mywrite(WRfile, DIbuf + WRcnt, 2);
+	 WRcnt += mywrite(WRfile, DIbuf + WRcnt, 32);
+	 DIcnt = 0;
 
-	// /* We read the first part of the emperor's speech */
-	// SWcnt += myread(SWfile, SWbuf + SWcnt, 0);
-	// SWcnt += myread(SWfile, SWbuf + SWcnt, 188);
-	// SWcnt += myread(SWfile, SWbuf + SWcnt, 12);
-	// SWcnt += myread(SWfile, SWbuf + SWcnt, 12);
-	// SWcnt += myread(SWfile, SWbuf + SWcnt, 150);
+	 /* We read the first part of the emperor's speech */
+	 SWcnt += myread(SWfile, SWbuf + SWcnt, 0);
+	 SWcnt += myread(SWfile, SWbuf + SWcnt, 188);
+	 SWcnt += myread(SWfile, SWbuf + SWcnt, 12);
+	 SWcnt += myread(SWfile, SWbuf + SWcnt, 12);
+	 SWcnt += myread(SWfile, SWbuf + SWcnt, 150);
 	
-	// /* We write Palpatine's speech to file and skip to another interesting paragraph to read */
-	// mywrite(WRfile, SWbuf, SWcnt);
+	 /* We write Palpatine's speech to file and skip to another interesting paragraph to read */
+	 mywrite(WRfile, SWbuf, SWcnt);
 	
-	// myseek(SWfile, 1463, SEEK_CUR);
-	// SWcnt += myread(SWfile, SWbuf + SWcnt, 357);
+	 myseek(SWfile, 1463, SEEK_CUR);
+	 SWcnt += myread(SWfile, SWbuf + SWcnt, 357);
 
-	// /* Write the new contents of what we just seeked and read */	
-	// mywrite(WRfile, SWbuf, SWcnt);
-	// SWcnt = 0;
+	 /* Write the new contents of what we just seeked and read */	
+	 mywrite(WRfile, SWbuf, SWcnt);
+	 SWcnt = 0;
 
-	// /* Now fetch more of the Decl. of Ind. by using Myseek with Seek_set */
-	// myseek(DIfile, DIcnt + 842, SEEK_SET);
-	// DIcnt += myread(DIfile, DIbuf + DIcnt, 4000);
-	// mywrite(WRfile, DIbuf, 627); 
+	 /* Now fetch more of the Decl. of Ind. by using Myseek with Seek_set */
+	 myseek(DIfile, DIcnt + 842, SEEK_SET);
+	 DIcnt += myread(DIfile, DIbuf + DIcnt, 4000);
+	 mywrite(WRfile, DIbuf, 627); 
 
-	// /* Close our files */
-	// myclose(WRfile);
-	// myclose(DIfile);
-	// myclose(SWfile);
+	 /* Close our files */
+	 myclose(WRfile);
+	 myclose(DIfile);
+	 myclose(SWfile);
 
 	/* END OF THE DECLARATION OF INDEPENDENCE TEST */
 
@@ -163,7 +165,7 @@ int main(int argc, char *argv[]) {
 	/* Test for many consecutive mywrite */
 
 	// FILE *writefile1;
-	// writefile1 = fopen("write0.txt", "w");
+	// writefile1 = fopen("./testfiles/write0.txt", "w");
 	// fwrite("I yearned to be a savior against injustice without contemplating the cost...", 1, 76, writefile1);
 	// fwrite("May the Fourth", 1, 14, writefile1);
 	// fwrite("I yearned to be a savior against the world", 1, 42, writefile1);
@@ -190,20 +192,20 @@ int main(int argc, char *argv[]) {
 		/* Case 2b: User attempts to write an amount of bytes that our IObuffer can handle with remaining space */
 
 	/* Test for many consecutive mywrite */
-	//MYFILE *writefile0;
-	//writefile0 = myopen("write0.txt", O_CREAT | O_TRUNC | O_RDWR);
-	//mywrite(writefile0, "I yearned to be a savior against injustice without contemplating the cost...", 76); /* Case 1a */
-	//mywrite(writefile0, "May the Fourth", 14); /* Case 1b */
-	//mywrite(writefile0, "I yearned to be a savior against the world", 42); /* Case 2a(i) */ // buffer will be "empty" b/cuz flush "resets" it
-	//mywrite(writefile0, "", 0); /* Case 0 */ //causes off by one!!!
+	MYFILE *writefile0;
+	writefile0 = myopen("./testfiles/write0.txt", O_CREAT | O_TRUNC | O_RDWR);
+	mywrite(writefile0, "I yearned to be a savior against injustice without contemplating the cost...", 76); /* Case 1a */
+	mywrite(writefile0, "May the Fourth", 14); /* Case 1b */
+	mywrite(writefile0, "I yearned to be a savior against the world", 42); /* Case 2a(i) */ // buffer will be "empty" b/cuz flush "resets" it
+	mywrite(writefile0, "", 0); /* Case 0 */ //causes off by one!!!
 
 	///*ONLY running from here down is also a problem!!!*/
-	//mywrite(writefile0, "I am YOUR FATHER!", 17); /* Case 1b */
-	//mywrite(writefile0, "This isss 19 bytes?", 19); /* Case 2a(ii) */
-	//mywrite(writefile0, "lil kid", 7); /* Case 2b */
-	//mywrite(writefile0, "ahh", 3); /* Case 2b */
-	//myflush(writefile0);
-	//myclose(writefile0);
+	mywrite(writefile0, "I am YOUR FATHER!", 17); /* Case 1b */
+	mywrite(writefile0, "This isss 19 bytes?", 19); /* Case 2a(ii) */
+	mywrite(writefile0, "lil kid", 7); /* Case 2b */
+	mywrite(writefile0, "ahh", 3); /* Case 2b */
+	myflush(writefile0);
+	myclose(writefile0);
 
 	///* Edge Cases */
 	////mywrite(writefile0, "this is just wrong", 27); /* count > len(input) */ //works
@@ -238,36 +240,43 @@ int main(int argc, char *argv[]) {
 	//myflush(f1);
 	////printf(buf, "\n\n");
 
-	//TODO: myseek() edge cases like seeking to before file begins or past EOF, and bad flags
-
-	/*!!! intermingling read/write !!!*/
-
-	/*OURS*/
+	/* !!! intermingling read/write !!! */
+	/* NOTE: TO VERIFY INTERMINGLING CORRECTNESS RUN: 
+ 	* 	$ make clean 
+ 	* 	$ make
+ 	* 	$ ./myio
+ 	* 	$ diff ./testfiles/rdwrinter0.txt ./testfiles/rdwrinter1.txt */
+	MYFILE* rdwr0 = myopen("./testfiles/rdwrinter0.txt", O_RDWR);
+	FILE* rdwr1 = fopen("./testfiles/rdwrinter1.txt", "r+");
 	char bufig[1000];
+	char bufig2[1000];
 
-	// myread((f1), bufig, 125); 
-	// mywrite(f1, "I am YOUR FATHER!", 17);
-	// myread((f1), bufig, 2);
-	// myread((f1), bufig, 0);
-	// mywrite(f1, "This isss 19 bytes?", 19);
+	/* OURS */
+	myread((rdwr0), bufig2, 125);
+	mywrite(rdwr0, "I am YOUR FATHER!", 17);
+	myread((rdwr0), bufig2, 2);
+	myread((rdwr0), bufig2, 0);
+	mywrite(rdwr0, "This isss 19 bytes?", 19);
+	myread(rdwr0, bufig2, 4);
+	mywrite(rdwr0, "Esto essssssss 26 bytes?", 24);	
+	myread(rdwr0, bufig2, 45);
+	
+	/* ACTUAL */
+	fread(bufig,1,125,rdwr1);
+	fwrite("I am YOUR FATHER!", 1, 17, rdwr1);
+	fread(bufig,1,2,rdwr1);
+	fread(bufig,1,0,rdwr1);
+	fwrite("This isss 19 bytes?", 1, 19, rdwr1);
+	fread(bufig,1,4,rdwr1);
+    fwrite("Esto essssssss 26 bytes?", 1, 24, rdwr1);
+    fread(bufig, 1,45,rdwr1);	
 
-
-	/*ACTUAL*/
-	fread(bufig,1,125,ffile);
-	fwrite("I am YOUR FATHER!", 1, 17, ffile);
-	fread(bufig,1,2,ffile);
-	fread(bufig,1,0,ffile);
-	fwrite("This isss 19 bytes?", 1, 19, ffile);
-
-
-
-
-
-
-	/*!!! basic closing !!!*/
+	/* !!! basic closing !!! */
 	/* actual: fclose() */
 	fclose(ffile);
+	fclose(rdwr1);
 
 	/* our: myclose() */
 	myclose(f1);
+	myclose(rdwr0);
 }

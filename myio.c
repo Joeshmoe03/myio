@@ -9,7 +9,7 @@
 #include <math.h>
 #include "myio.h"
 
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 25
 
 /* myopen returns a new MYFILE struct for later use with other functions */
 /* See: https://man7.org/linux/man-pages/man2/open.2.html#ERRORS
@@ -91,8 +91,7 @@ int myread(MYFILE* filep, char* outbuf, int count) {
 		/* Attempt a read with error handling directly on outbuf with no buffering (IObuf) */
 		if((nbytewasread += (int)read(filep->filedesc, outbuf + outbufoffset, nbytetoread)) < 0) {
 			return -1;
-		}
-		
+		}	
 		if(nbytewasread < count) {
 			filep->IOeobuf = 0;
 		}
@@ -146,7 +145,7 @@ int mywrite(MYFILE* filep, const char *inbuf, int count) {
 	/* This handles logic for when I decide to move from read to write */
 	filep->waswrite = 1;
 	if(filep->wasread == 1) {
-		lseek(filep->filedesc, filep->fileoffset - filep->IOoffset, SEEK_SET); //TODO THIS IS NEEDS TESTING
+		lseek(filep->filedesc, filep->fileoffset - filep->IOoffset, SEEK_SET); 
 		filep->wasread = 0;
 	}
 
@@ -210,7 +209,6 @@ int myflush(MYFILE* filep) {
 }
 
 int myseek(MYFILE *filep, int offset, int whence) {	
-
 	if(whence != SEEK_SET && whence != SEEK_CUR) {
 		return -1;
 	}
@@ -256,7 +254,6 @@ int myclose(MYFILE* filep) {
 
 	/* Free everything */
 	free(filep->IObuf);
-	free(filep);
-	
+	free(filep);	
 	return 0;
 }
