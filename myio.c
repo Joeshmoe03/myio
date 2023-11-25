@@ -146,7 +146,7 @@ int mywrite(MYFILE* filep, const char *inbuf, int count) {
 	/* This handles logic for when I decide to move from read to write */
 	filep->waswrite = 1;
 	if(filep->wasread == 1) {
-		lseek(filep->filedesc, filep->fileoffset - filep->IOoffset, SEEK_SET); //TODO THIS IS NEW AND NEEDS TESTING
+		lseek(filep->filedesc, filep->fileoffset - filep->IOoffset, SEEK_SET); //TODO THIS IS NEEDS TESTING
 		filep->wasread = 0;
 	}
 
