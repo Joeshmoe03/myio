@@ -9,7 +9,7 @@
 #include <math.h>
 #include "myio.h"
 
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 25
 
 /* myopen returns a new MYFILE struct for later use with other functions */
 /* See: https://man7.org/linux/man-pages/man2/open.2.html#ERRORS
@@ -62,16 +62,12 @@ int myread(MYFILE* filep, char* outbuf, int count) {
 	int outbufoffset = 0;
 	int nbytetoread = count;
 	int nbytewasread = 0;
-		
-	/* file offset updates for myseek */
-	//filep->fileoffset += count;
 	
 	/* Reset some flag when moving between reads and writes. */
 	filep->wasread = 1;
 	if(filep->waswrite == 1) {
 		myflush(filep);
 		lseek(filep->filedesc, filep->fileoffset, SEEK_SET);
-		//myseek(filep, filep->fileoffset, SEEK_SET);
 		filep->waswrite = 0;
 	}	
 
@@ -150,11 +146,11 @@ int mywrite(MYFILE* filep, const char *inbuf, int count) {
 	/* This handles logic for when I decide to move from read to write */
 	filep->waswrite = 1;
 	if(filep->wasread == 1) {
-		lseek(filep->filedesc, -1 * BUFFER_SIZE, SEEK_CUR); //TODO THIS IS NEW AND NEEDS TESTING
+		lseek(filep->filedesc, filep->fileoffset - filep->IOoffset, SEEK_SET); //TODO THIS IS NEW AND NEEDS TESTING
 		filep->wasread = 0;
 	}
 
-	/* Update fileoffset by the fake amount that the user wanted to write */
+	/* Calculate buffer space */
 	int IObufspace = filep->IOsiz - filep->IOoffset;
 
 	/* We check that our flags are fine */
@@ -164,7 +160,7 @@ int mywrite(MYFILE* filep, const char *inbuf, int count) {
 
 	/* If we want to write something that exceeds the capacity of our buffer, might as well call it directly */
 	if(count > filep->IOsiz) {
-		
+				
 		/* Flush any previously buffered items and then call write as we write something larger than even our buffer size */
 		myflush(filep);
 		filep->IOoffset = 0;
@@ -195,9 +191,7 @@ int mywrite(MYFILE* filep, const char *inbuf, int count) {
 }
 
 int myflush(MYFILE* filep) {
-	filep->waswrite = 0;
-	filep->wasread = 0;
-
+	
 	/* We check that our flags are fine */
 	if((filep->flags & (O_RDWR|O_WRONLY)) != O_RDWR && (filep->flags & (O_RDWR|O_WRONLY)) != O_WRONLY) {
 		filep->IOoffset = 0;
