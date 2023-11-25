@@ -9,7 +9,7 @@
 #include <math.h>
 #include "myio.h"
 
-#define BUFFER_SIZE 25
+#define BUFFER_SIZE 4096
 
 /* myopen returns a new MYFILE struct for later use with other functions */
 /* See: https://man7.org/linux/man-pages/man2/open.2.html#ERRORS
@@ -62,14 +62,16 @@ int myread(MYFILE* filep, char* outbuf, int count) {
 	int outbufoffset = 0;
 	int nbytetoread = count;
 	int nbytewasread = 0;
-	
+		
 	/* file offset updates for myseek */
-	filep->fileoffset += count;
+	//filep->fileoffset += count;
 	
 	/* Reset some flag when moving between reads and writes. */
 	filep->wasread = 1;
 	if(filep->waswrite == 1) {
 		myflush(filep);
+		lseek(filep->filedesc, filep->fileoffset, SEEK_SET);
+		//myseek(filep, filep->fileoffset, SEEK_SET);
 		filep->waswrite = 0;
 	}	
 
@@ -137,6 +139,7 @@ int myread(MYFILE* filep, char* outbuf, int count) {
 	memcpy(outbuf + outbufoffset, filep->IObuf + filep->IOoffset, nbytetoread);
 	filep->IOoffset += nbytetoread;
 	nbytewasread += nbytetoread;
+	filep->fileoffset += nbytewasread;
 	return nbytewasread;
 }
 
@@ -147,12 +150,12 @@ int mywrite(MYFILE* filep, const char *inbuf, int count) {
 	/* This handles logic for when I decide to move from read to write */
 	filep->waswrite = 1;
 	if(filep->wasread == 1) {
+		lseek(filep->filedesc, -1 * BUFFER_SIZE, SEEK_CUR); //TODO THIS IS NEW AND NEEDS TESTING
 		filep->wasread = 0;
 	}
 
 	/* Update fileoffset by the fake amount that the user wanted to write */
 	int IObufspace = filep->IOsiz - filep->IOoffset;
-	filep->fileoffset += count;
 
 	/* We check that our flags are fine */
 	if((filep->flags & (O_RDWR|O_WRONLY)) != O_RDWR && (filep->flags & (O_RDWR|O_WRONLY)) != O_WRONLY) {
@@ -176,7 +179,7 @@ int mywrite(MYFILE* filep, const char *inbuf, int count) {
 
 		/* Fill all possible buffer space, flush, and calculate how much more we have to put in write buffer for entering default case */
 		nbytetomemcpy = IObufspace;
-		memcpy(filep->IObuf + filep->IOoffset, inbuf, nbytetomemcpy);
+		memcpy(filep->IObuf + filep->IOoffset, inbuf + inbufoffset, nbytetomemcpy);
 		filep->IOoffset = filep->IOsiz;
 		myflush(filep);
 		nbytetomemcpy = count - nbytetomemcpy;
@@ -187,11 +190,11 @@ int mywrite(MYFILE* filep, const char *inbuf, int count) {
 	/* Default case of put everything specified in buf since it is not more than bufsize and return fake count */
 	memcpy(filep->IObuf + filep->IOoffset, inbuf + inbufoffset, nbytetomemcpy);
 	filep->IOoffset += nbytetomemcpy;
+	filep->fileoffset += count;
 	return count;
 }
 
 int myflush(MYFILE* filep) {
-	
 	filep->waswrite = 0;
 	filep->wasread = 0;
 
