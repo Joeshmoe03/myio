@@ -17,11 +17,13 @@
 MYFILE *myopen(const char* path, int flags) {
 	int filedesc;
 	char* fileIObuf = (char *)malloc(BUFFER_SIZE);
-	if(fileIObuf == NULL) {
-		return NULL;
-	}
 	MYFILE *filep = (MYFILE *)malloc(sizeof(MYFILE));
 	if(filep == NULL) {
+		free(fileIObuf);
+		return NULL;
+	}
+	if(fileIObuf == NULL) {
+		free(filep);
 		return NULL;
 	}
 	
@@ -32,14 +34,14 @@ MYFILE *myopen(const char* path, int flags) {
 		(flags & (O_CREAT|O_TRUNC)) == O_TRUNC) {
 		filedesc = open(path, flags, 0666);
 		if(filedesc == -1) {
-			free(filep->IObuf);
+			free(fileIObuf);
 			free(filep);
 			return NULL;
 		}
 	} else {
 		filedesc = open(path, flags);
 		if(filedesc == -1) {
-			free(filep->IObuf);
+			free(fileIObuf);
 			free(filep);
 			return NULL;
 		}
